@@ -1,0 +1,91 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "rekod_pbd",
+      "fields": [
+        { "fieldPath": "subjek", "order": "ASCENDING" },
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "tarikh_string", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "rekod_pbd",
+      "fields": [
+        { "fieldPath": "tahun_rekod", "order": "ASCENDING" },
+        { "fieldPath": "subjek", "order": "ASCENDING" },
+        { "fieldPath": "tarikh_string", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "rekod_pbd",
+      "fields": [
+        { "fieldPath": "tahun_rekod", "order": "ASCENDING" },
+        { "fieldPath": "subjek", "order": "ASCENDING" },
+        { "fieldPath": "tahun", "order": "ASCENDING" },
+        { "fieldPath": "tarikh_string", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "rekod_pbd",
+      "fields": [
+        { "fieldPath": "tahun_rekod", "order": "ASCENDING" },
+        { "fieldPath": "subjek", "order": "ASCENDING" },
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "tarikh_string", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "rekod_pbd",
+      "fields": [
+        { "fieldPath": "subjek", "order": "ASCENDING" },
+        { "fieldPath": "tahun", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "rekod_pbd",
+      "fields": [
+        { "fieldPath": "subjek", "order": "ASCENDING" },
+        { "fieldPath": "tahun", "order": "ASCENDING" },
+        { "fieldPath": "kelas", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "rekod_pbd",
+      "fields": [
+        { "fieldPath": "tahun_rekod", "order": "ASCENDING" },
+        { "fieldPath": "subjek", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "rekod_pbd",
+      "fields": [
+        { "fieldPath": "tahun_rekod", "order": "ASCENDING" },
+        { "fieldPath": "subjek", "order": "ASCENDING" },
+        { "fieldPath": "tahun", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "subjek",
+      "fields": [
+        { "fieldPath": "aktif", "order": "ASCENDING" },
+        { "fieldPath": "urutan", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "semakan_penilaian",
+      "fields": [
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "subjek", "order": "ASCENDING" },
+        { "fieldPath": "tahun_rekod", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "semakan_penilaian",
+      "fields": [
+        { "fieldPath": "tahun_rekod", "order": "ASCENDING" },
+        { "fieldPath": "penilaian", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

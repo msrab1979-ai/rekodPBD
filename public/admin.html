@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Sistem Rekod PBD</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/mobile.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <div id="loader">
+        <div class="spinner"></div>
+        <div class="loader-message">Loading...</div>
+    </div>
+    <div id="toast-container"></div>
+
+    <div id="loginScreen" style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, var(--primary), var(--secondary));">
+        <div style="background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); max-width: 400px; width: 90%;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <div style="width: 80px; height: 80px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 36px; color: white;">🔐</div>
+                <h2 style="margin: 0; color: var(--dark);">ADMIN PANEL</h2>
+                <p style="color: var(--text-light); margin-top: 10px;">Kawalan Penuh Sistem</p>
+            </div>
+            <div class="form-group">
+                <label>Password Admin:</label>
+                <div style="position: relative;">
+                    <input type="password" id="adminPassword" class="form-control" placeholder="Masukkan password" onkeypress="if(event.key==='Enter') loginAdmin()" style="padding-right: 45px;">
+                    <button type="button" onclick="togglePasswordVisibility()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 20px; padding: 5px;" title="Show/Hide Password">
+                        <span id="passwordToggleIcon">👁️</span>
+                    </button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="rememberMe" style="width: 18px; height: 18px;">
+                    <span>Ingat saya (Remember Me)</span>
+                </label>
+            </div>
+            <button class="btn btn-primary" onclick="loginAdmin()" style="width: 100%;">🔓 Login</button>
+        </div>
+    </div>
+
+    <div id="adminPanel" style="display: none;">
+        <div class="header">
+            <div class="header-top">
+                <div class="header-title">
+                    <div class="school-logo">SI</div>
+                    <div class="title-text">
+                        <h1>ADMIN PANEL</h1>
+                        <p>Kawalan penuh sistem</p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <a href="index.html" class="admin-link" style="background: var(--primary);">🏠 HOME</a>
+                    <button class="admin-link" onclick="logoutAdmin()" style="background: var(--danger); border: none; cursor: pointer;">🚪 Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-container">
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="switchAdminTab('murid')">👥 MURID</button>
+                <button class="nav-tab" onclick="switchAdminTab('reset')">🗑️ RESET</button>
+                <button class="nav-tab" onclick="switchAdminTab('guru')">👨‍🏫 GURU</button>
+                <button class="nav-tab" onclick="switchAdminTab('subjek')">📚 SUBJEK</button>
+                <button class="nav-tab" onclick="switchAdminTab('sistem')">⚙️ KAWALAN SISTEM</button>
+            </div>
+
+            <!-- TAB 1: MURID -->
+            <div id="tab-murid" class="tab-content">
+                <h3>👥 STATISTIK MURID</h3>
+                <div class="action-buttons" style="margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="openImportCSVModal()">📥 Import CSV</button>
+                    <button class="btn btn-success" onclick="downloadTemplate()">📄 Muat Turun Template</button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>MAKLUMAT</th>
+                                <th>JUMLAH</th>
+                            </tr>
+                        </thead>
+                        <tbody id="muridStatsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 2: RESET DATABASE -->
+            <div id="tab-reset" class="tab-content" style="display: none;">
+                <h3>🗑️ RESET DATABASE</h3>
+                <div class="alert alert-danger">
+                    <strong>⚠️ AMARAN!</strong> Operasi ini TIDAK BOLEH dibatalkan! Pastikan anda membuat backup terlebih dahulu.
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">
+                    <!-- Reset Murid — TIDAK UBAH -->
+                    <div style="background: var(--light); padding: 20px; border-radius: 12px; border: 2px solid var(--border);">
+                        <h4>🗑️ Reset Murid</h4>
+                        <p style="color: var(--text-light);">Padam semua data murid dalam collection 'murid'</p>
+                        <button class="btn btn-danger" onclick="confirmReset('murid')">Padam Semua Murid</button>
+                    </div>
+
+                    <!-- Reset Rekod PBD — TAMBAH DROPDOWN TAHUN -->
+                    <div style="background: var(--light); padding: 20px; border-radius: 12px; border: 2px solid var(--border);">
+                        <h4>🗑️ Reset Rekod PBD</h4>
+                        <p style="color: var(--text-light);">Padam rekod penilaian dalam collection 'rekod_pbd'</p>
+                        <div style="margin: 14px 0 4px;">
+                            <label style="font-size: 13px; color: var(--text-light); display: block; margin-bottom: 5px; font-weight: 600;">📅 Year:</label>
+                            <select id="resetTahunRekod" class="form-control" style="font-size: 14px;">
+                                <option value="semua">🌍 Semua Year</option>
+                            </select>
+                        </div>
+                        <div style="margin: 10px 0 10px;">
+                            <label style="font-size: 13px; color: var(--text-light); display: block; margin-bottom: 5px; font-weight: 600;">📚 Tahun:</label>
+                            <select id="resetTahun" class="form-control" style="font-size: 14px;">
+                                <option value="semua">🌍 Semua Tahun</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-danger" onclick="confirmReset('rekod')">Padam Rekod</button>
+                    </div>
+
+                    <!-- Reset Subjek — TIDAK UBAH -->
+                    <div style="background: var(--light); padding: 20px; border-radius: 12px; border: 2px solid var(--border);">
+                        <h4>🗑️ Reset Subjek/Topik</h4>
+                        <p style="color: var(--text-light);">Padam subjek, topik, dan sub-topik</p>
+                        <button class="btn btn-danger" onclick="confirmReset('subjek')">Padam Subjek & Topik</button>
+                    </div>
+
+                    <!-- Reset Semua — TIDAK UBAH -->
+                    <div style="background: #fee2e2; padding: 20px; border-radius: 12px; border: 2px solid #dc2626;">
+                        <h4>☠️ Reset SEMUA</h4>
+                        <p style="color: #991b1b; font-weight: 600;">BAHAYA! Sistem kembali ke keadaan awal!</p>
+                        <button class="btn btn-danger" onclick="confirmReset('semua')">PADAM SEMUA DATA</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: GURU (Placeholder) — TIDAK UBAH -->
+            <div id="tab-guru" class="tab-content" style="display: none;">
+                <h3>👨‍🏫 PENGURUSAN GURU</h3>
+                <div style="text-align: center; padding: 60px; color: var(--text-light);">
+                    <div style="font-size: 64px; margin-bottom: 20px;">🚧</div>
+                    <h3>Coming Soon</h3>
+                    <p>Modul pengurusan guru akan ditambah tidak lama lagi</p>
+                </div>
+            </div>
+
+            <!-- TAB 4: SUBJEK — TIDAK UBAH -->
+            <div id="tab-subjek" class="tab-content" style="display: none;">
+                <h3>📚 PENGURUSAN SUBJEK</h3>
+                <div class="action-buttons" style="margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="openAddSubjekModal()">➕ Tambah Subjek</button>
+                </div>
+                <div class="alert alert-info">
+                    <strong>ℹ️ Info:</strong> Subjek yang ditetapkan di sini akan digunakan oleh guru untuk menambah topik dan sub-topik.
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>BIL</th>
+                                <th>SUBJEK</th>
+                                <th>URUTAN</th>
+                                <th>STATUS</th>
+                                <th>MURID TERLIBAT</th>
+                                <th>TINDAKAN</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subjekTableBody">
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 20px;">
+                                    Loading...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 5: KAWALAN SISTEM — TIDAK UBAH -->
+            <div id="tab-sistem" class="tab-content" style="display: none;">
+                <h3>⚙️ TETAPAN SISTEM</h3>
+                <div style="max-width: 600px;">
+                    <div class="form-group">
+                        <label>Logo Sekolah:</label>
+                        <div style="display:flex;align-items:center;gap:15px;flex-wrap:wrap;">
+                            <div id="logoPreview" style="width:80px;height:80px;border:2px dashed #ccc;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#f8f9fa;">
+                                <span style="color:#aaa;font-size:12px;">Tiada Logo</span>
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:8px;">
+                                <input type="file" id="logoUpload" accept="image/*" onchange="previewLogo(event)" style="display:none;">
+                                <button type="button" onclick="document.getElementById('logoUpload').click()" style="background:#667eea;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;">📁 Upload Logo</button>
+                                <button type="button" id="btnRemoveLogo" onclick="removeLogo()" style="display:none;background:#e74c3c;color:white;border:none;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;">🗑️ Buang</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Sekolah:</label>
+                        <input type="text" id="namaSekolah" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Tahun Semasa:</label>
+                        <input type="text" id="tahunSemasa" class="form-control" placeholder="2025">
+                    </div>
+                    <div class="form-group">
+                        <label>Header Title:</label>
+                        <input type="text" id="headerTitle" class="form-control">
+                    </div>
+                    <h4 style="margin-top: 30px;">Kawalan Features:</h4>
+                    <div style="background: var(--light); padding: 20px; border-radius: 12px;">
+                        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer;">
+                            <input type="checkbox" id="allowMasukRekod">
+                            <span>Allow Masuk Rekod</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer;">
+                            <input type="checkbox" id="allowEditRekod">
+                            <span>Allow Edit Rekod</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer;">
+                            <input type="checkbox" id="allowDeleteRekod">
+                            <span>Allow Delete Rekod</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer;">
+                            <input type="checkbox" id="allowPengurusanMurid">
+                            <span>Allow Pengurusan Murid</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="allowExportPDF">
+                            <span>Allow Export PDF</span>
+                        </label>
+                    </div>
+                    <button class="btn btn-primary" onclick="saveSystemSettings()" style="margin-top: 20px;">💾 Simpan Tetapan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: IMPORT CSV — TIDAK UBAH -->
+    <div id="modalImportCSV" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>📥 Import Murid dari CSV</h2>
+                <button class="close-btn" onclick="closeModal('modalImportCSV')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Pilih Fail CSV:</label>
+                    <input type="file" id="csvFileInput" class="form-control" accept=".csv" onchange="previewCSV()">
+                </div>
+                <div id="csvPreview" style="display: none; margin-top: 20px;">
+                    <h4>Preview Data (5 baris pertama):</h4>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; font-size: 12px;">
+                            <thead>
+                                <tr style="background: var(--primary); color: white;">
+                                    <th style="padding: 8px;">NO KP</th>
+                                    <th style="padding: 8px;">NAMA</th>
+                                    <th style="padding: 8px;">TAHUN</th>
+                                    <th style="padding: 8px;">KELAS</th>
+                                    <th style="padding: 8px;">JANTINA</th>
+                                </tr>
+                            </thead>
+                            <tbody id="csvPreviewBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="alert alert-info" style="margin-top: 15px;">
+                        <strong>Jumlah rekod:</strong> <span id="csvRecordCount">0</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="btnImportCSV" onclick="importCSV()" disabled>📥 Import Sekarang</button>
+                <button class="btn btn-danger" onclick="closeModal('modalImportCSV')">❌ Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CONFIRM RESET — TIDAK UBAH -->
+    <div id="modalConfirmReset" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 id="resetWarningTitle">⚠️ AMARAN</h2>
+                <button class="close-btn" onclick="closeModal('modalConfirmReset')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <p id="resetWarningMessage" style="white-space: pre-line;"></p>
+                </div>
+                <div class="form-group">
+                    <label>Taip password untuk pengesahan:</label>
+                    <input type="password" id="resetConfirmPassword" class="form-control" placeholder="adminpbd2024">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="executeReset()">☠️ Ya, Saya Pasti</button>
+                <button class="btn btn-primary" onclick="closeModal('modalConfirmReset')">❌ Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD/EDIT SUBJEK — TIDAK UBAH -->
+    <div id="modalSubjek" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalSubjekTitle">➕ Tambah Subjek Baru</h2>
+                <button class="close-btn" onclick="closeModal('modalSubjek')">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editSubjekId">
+                
+                <div class="form-group">
+                    <label>Nama Subjek: *</label>
+                    <input type="text" id="inputSubjekNama" class="form-control" placeholder="Contoh: SAINS" style="text-transform: uppercase;">
+                </div>
+
+                <div class="form-group">
+                    <label>Urutan: *</label>
+                    <input type="number" id="inputSubjekUrutan" class="form-control" placeholder="1" min="1">
+                    <small style="color: #666;">Menentukan susunan paparan subjek</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Murid Terlibat: *</label>
+                    <select id="inputMuridTerlibat" class="form-control">
+                        <option value="">Pilih...</option>
+                        <option value="SEMUA">🌍 SEMUA MURID</option>
+                        <option value="ISLAM">☪️ ISLAM SAHAJA</option>
+                        <option value="BUKAN_ISLAM">✝️ BUKAN ISLAM SAHAJA</option>
+                    </select>
+                    <small style="color: #666;">Menentukan murid mana yang mengambil subjek ini</small>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="inputSubjekAktif" checked>
+                        <span>Subjek Aktif</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="saveSubjek()">💾 Simpan</button>
+                <button class="btn btn-danger" onclick="closeModal('modalSubjek')">❌ Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

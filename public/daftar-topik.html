@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Topik - Sistem Rekod PBD</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/mobile.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <div id="loader"><div class="spinner"></div><div class="loader-message">Loading...</div></div>
+    <div id="toast-container"></div>
+
+    <div class="header">
+        <div class="header-top">
+            <div class="header-title">
+                <div class="school-logo">SI</div>
+                <div class="title-text">
+                    <h1>DAFTAR TOPIK</h1>
+                    <p>Pengurusan topik dan sub-topik pembelajaran</p>
+                </div>
+            </div>
+            <a href="index.html" class="admin-link">🏠 HOME</a>
+        </div>
+    </div>
+
+    <div class="content-container">
+        <div class="alert alert-info">
+            <strong>ℹ️ Nota:</strong> Subjek diuruskan oleh ADMIN sahaja. Anda hanya boleh menambah topik dan sub-topik untuk subjek yang telah ditetapkan.
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('topik', this)">📖 TOPIK</button>
+            <button class="nav-tab" onclick="switchTab('subtopik', this)">📝 SUB-TOPIK</button>
+        </div>
+
+        <!-- TAB 1: TOPIK -->
+        <div id="tab-topik" class="tab-content">
+            <h3>📖 PENGURUSAN TOPIK</h3>
+            <div class="filter-section">
+                <div class="filter-grid">
+                    <div class="form-group">
+                        <label>Subjek:</label>
+                        <select id="filterSubjek" class="form-control" onchange="loadTopikList()">
+                            <option value="">Pilih Subjek</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Tahun:</label>
+                        <select id="filterTahun" class="form-control" onchange="loadTopikList()">
+                            <option value="">Pilih Tahun</option>
+                            <option value="SATU">SATU</option>
+                            <option value="DUA">DUA</option>
+                            <option value="TIGA">TIGA</option>
+                            <option value="EMPAT">EMPAT</option>
+                            <option value="LIMA">LIMA</option>
+                            <option value="ENAM">ENAM</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="openAddTopikModal()">➕ Tambah Topik</button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>BIL</th>
+                            <th>TOPIK PEMBELAJARAN</th>
+                            <th>SUBJEK</th>
+                            <th>TAHUN</th>
+                            <th>TINDAKAN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topikTableBody">
+                        <tr><td colspan="5" style="text-align:center;padding:20px;color:#999;">Sila pilih subjek dan tahun</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 2: SUB-TOPIK -->
+        <div id="tab-subtopik" class="tab-content" style="display:none;">
+            <h3>📝 PENGURUSAN SUB-TOPIK</h3>
+            <div class="filter-section">
+                <div class="filter-grid">
+                    <div class="form-group">
+                        <label>Subjek:</label>
+                        <select id="filterSubjekSubtopik" class="form-control" onchange="loadTahunForSubtopik()">
+                            <option value="">Pilih Subjek</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Tahun:</label>
+                        <select id="filterTahunSubtopik" class="form-control" onchange="loadTopikForSubtopik()">
+                            <option value="">Pilih Tahun</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Topik Utama:</label>
+                        <select id="filterTopikSubtopik" class="form-control" onchange="loadSubtopikList()">
+                            <option value="">Pilih Topik</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="openAddSubtopikModal()">➕ Tambah Sub-Topik</button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>BIL</th>
+                            <th>SUB-TOPIK</th>
+                            <th>TOPIK UTAMA</th>
+                            <th>SUBJEK</th>
+                            <th>TAHUN</th>
+                            <th>TINDAKAN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="subtopikTableBody">
+                        <tr><td colspan="6" style="text-align:center;padding:20px;color:#999;">Sila pilih subjek, tahun dan topik</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: TAMBAH/EDIT TOPIK — hanya Nama Topik -->
+    <div id="modalTopik" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTopikTitle">➕ Tambah Topik Baru</h2>
+                <button class="close-btn" onclick="closeModal('modalTopik')">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editTopikId">
+                <input type="hidden" id="hiddenTopikIdSubjek">
+                <input type="hidden" id="hiddenTopikSubjekNama">
+                <input type="hidden" id="hiddenTopikTahun">
+                <div style="background:#eef2ff;padding:12px 15px;border-radius:8px;margin-bottom:18px;border:1px solid #c7d2fe;">
+                    <span style="color:#4338ca;font-size:15px;">📚 Subjek: <strong id="displayTopikSubjek">-</strong> &nbsp;|&nbsp; Tahun: <strong id="displayTopikTahun">-</strong></span>
+                </div>
+                <div class="form-group">
+                    <label>Nama Topik: *</label>
+                    <input type="text" id="inputTopikNama" class="form-control" placeholder="Contoh: SISTEM PENGLIHATAN" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
+                </div>
+                <div class="form-group">
+                    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                        <input type="checkbox" id="inputTopikAktif" checked>
+                        <span>Topik Aktif</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="saveTopik()">💾 Simpan</button>
+                <button class="btn btn-danger" onclick="closeModal('modalTopik')">❌ Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: TAMBAH/EDIT SUB-TOPIK — hanya Nama Sub-Topik -->
+    <div id="modalSubtopik" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalSubtopikTitle">➕ Tambah Sub-Topik Baru</h2>
+                <button class="close-btn" onclick="closeModal('modalSubtopik')">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editSubtopikId">
+                <input type="hidden" id="hiddenSubtopikParentId">
+                <input type="hidden" id="hiddenSubtopikIdSubjek">
+                <input type="hidden" id="hiddenSubtopikSubjekNama">
+                <input type="hidden" id="hiddenSubtopikTahun">
+                <input type="hidden" id="hiddenSubtopikTopikKod">
+                <div style="background:#eef2ff;padding:12px 15px;border-radius:8px;margin-bottom:18px;border:1px solid #c7d2fe;">
+                    <span style="color:#4338ca;font-size:15px;">📚 <strong id="displaySubtopikSubjek">-</strong> &nbsp;|&nbsp; Tahun: <strong id="displaySubtopikTahun">-</strong> &nbsp;|&nbsp; Topik: <strong id="displaySubtopikTopik">-</strong></span>
+                </div>
+                <div class="form-group">
+                    <label>Nama Sub-Topik: *</label>
+                    <input type="text" id="inputSubtopikNama" class="form-control" placeholder="Contoh: KORNEA" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
+                </div>
+                <div class="form-group">
+                    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                        <input type="checkbox" id="inputSubtopikAktif" checked>
+                        <span>Sub-Topik Aktif</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="saveSubtopik()">💾 Simpan</button>
+                <button class="btn btn-danger" onclick="closeModal('modalSubtopik')">❌ Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CONFIRM DELETE -->
+    <div id="modalConfirmDelete" class="modal">
+        <div class="modal-content" style="max-width:500px;">
+            <div class="modal-header">
+                <h2>⚠️ Pengesahan Padam</h2>
+                <button class="close-btn" onclick="closeModal('modalConfirmDelete')">✕</button>
+            </div>
+            <div class="modal-body">
+                <p id="deleteConfirmMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="confirmDelete()">🗑️ Ya, Padam</button>
+                <button class="btn btn-primary" onclick="closeModal('modalConfirmDelete')">❌ Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="js/daftar-topik.js"></script>
+</body>
+</html>

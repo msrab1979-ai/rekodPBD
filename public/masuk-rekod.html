@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masuk Rekod Transit PBD - Sistem Rekod PBD</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/mobile.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <div id="loader"><div class="spinner"></div><div class="loader-message">Loading...</div></div>
+    <div id="toast-container"></div>
+
+    <div class="header">
+        <div class="header-top">
+            <div class="header-title">
+                <div class="school-logo">SI</div>
+                <div class="title-text">
+                    <h1>MASUK REKOD TRANSIT PBD</h1>
+                    <p>Input penilaian murid untuk setiap subjek dan topik</p>
+                </div>
+            </div>
+            <a href="index.html" class="admin-link" style="background: var(--primary);"><span>🏠</span> HOME</a>
+        </div>
+    </div>
+
+    <div class="content-container">
+        <h2 class="page-title">📝 MAKLUMAT PENILAIAN</h2>
+        <div style="background: var(--light); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+            <h3 style="margin-bottom: 15px; color: var(--dark);">ℹ️ Maklumat Sesi</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div class="form-group">
+                    <label>Tahun: *</label>
+                    <select id="inputTahun" class="form-control" onchange="loadKelasList()">
+                        <option value="">Pilih Tahun</option>
+                        <option value="SATU">SATU</option>
+                        <option value="DUA">DUA</option>
+                        <option value="TIGA">TIGA</option>
+                        <option value="EMPAT">EMPAT</option>
+                        <option value="LIMA">LIMA</option>
+                        <option value="ENAM">ENAM</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Kelas: *</label>
+                    <select id="inputKelas" class="form-control" onchange="loadSubjekList()">
+                        <option value="">Pilih Kelas</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Subjek: *</label>
+                    <select id="inputSubjek" class="form-control" onchange="loadTopikList(); filterMuridBySubjek();">
+                        <option value="">Pilih Subjek</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Topik: *</label>
+                    <select id="inputTopik" class="form-control" onchange="loadSubtopikList()">
+                        <option value="">Pilih Topik</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Sub-Topik: *</label>
+                    <select id="inputSubtopik" class="form-control">
+                        <option value="">Pilih Sub-Topik</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Nama Guru: *</label>
+                    <input type="text" id="inputNamaGuru" class="form-control" placeholder="Nama guru" style="text-transform: uppercase;">
+                </div>
+                <div class="form-group">
+                    <label>Tarikh: *</label>
+                    <input type="date" id="inputTarikh" class="form-control">
+                </div>
+            </div>
+        </div>
+
+        <div id="muridSection" style="display: none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
+                <h3 style="color: var(--dark);">👥 Senarai Murid</h3>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button class="btn btn-warning btn-sm" onclick="setAllTP(3)">⚡ TP=3</button>
+                    <button class="btn btn-success btn-sm" onclick="setAllTP(4)">⚡ TP=4</button>
+                    <button class="btn btn-sm" style="background:#10b981;color:white;" onclick="setAllTP(5)">⚡ TP=5</button>
+                    <button class="btn btn-sm" style="background:#0891b2;color:white;" onclick="setAllTP(6)">⚡ TP=6</button>
+                    <button class="btn btn-sm" style="background:#16a34a;color:white;" onclick="setAllPenguasaan('Menguasai')">✅ Semua Menguasai</button>
+                    <button class="btn btn-sm" style="background:#dc2626;color:white;" onclick="setAllPenguasaan('Belum Menguasai')">❌ Semua Belum</button>
+                </div>
+            </div>
+            <div class="alert alert-info">
+                <strong>Jumlah Murid:</strong> <span id="totalMuridCount">0</span> orang
+            </div>
+            <div class="table-container">
+                <table id="muridTable">
+                    <thead>
+                        <tr>
+                            <th style="width:50px;">BIL</th>
+                            <th style="width:90px;">NO KP</th>
+                            <th>NAMA MURID</th>
+                            <th style="width:70px;">TP</th>
+                            <th style="width:140px;">PENGUASAAN</th>
+                            <th style="width:180px;">CATATAN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="muridTableBody">
+                        <tr><td colspan="6" style="text-align:center;padding:20px;">Pilih Tahun dan Kelas untuk memaparkan senarai murid</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">
+                <button class="btn btn-danger" onclick="resetForm()">❌ Reset Form</button>
+                <button class="btn btn-primary" onclick="saveRekod()" id="btnSaveRekod">💾 Simpan Rekod</button>
+            </div>
+        </div>
+
+        <div id="emptyState" style="text-align:center;padding:60px 20px;color:var(--text-light);">
+            <div style="font-size:64px;margin-bottom:20px;">📝</div>
+            <h3 style="color:var(--dark);margin-bottom:10px;">Sila Lengkapkan Maklumat Sesi</h3>
+            <p>Pilih Tahun, Kelas, Subjek, Topik, dan Sub-Topik untuk mula memasukkan penilaian murid</p>
+        </div>
+    </div>
+
+    <div id="modalDuplicateWarning" class="modal">
+        <div class="modal-content" style="max-width:500px;">
+            <div class="modal-header">
+                <h2>⚠️ Rekod Sudah Wujud</h2>
+                <button class="close-btn" onclick="closeModal('modalDuplicateWarning')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <strong>Amaran:</strong> Rekod untuk kombinasi ini sudah wujud:
+                    <div style="margin-top:10px;padding:10px;background:white;border-radius:6px;font-size:13px;">
+                        <strong>Kelas:</strong> <span id="dupKelas"></span><br>
+                        <strong>Subjek:</strong> <span id="dupSubjek"></span><br>
+                        <strong>Topik:</strong> <span id="dupTopik"></span><br>
+                        <strong>Sub-Topik:</strong> <span id="dupSubtopik"></span><br>
+                        <strong>Tarikh:</strong> <span id="dupTarikh"></span>
+                    </div>
+                </div>
+                <p style="margin-top:15px;">Anda masih mahu simpan rekod baru?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="forceSaveRekod()">✅ Ya, Simpan Juga</button>
+                <button class="btn btn-danger" onclick="closeModal('modalDuplicateWarning')">❌ Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="js/masuk-rekod.js"></script>
+</body>
+</html>

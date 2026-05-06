@@ -1,0 +1,10 @@
+node_modules/
+.firebase/
+.DS_Store
+.claude/
+deploy.zip
+fix_analisa.js
+fix_logo.js
+firestore.json
+package-lock.json
+package.json

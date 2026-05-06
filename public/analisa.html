@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisa Pencapaian PBD - SK Sultan Ismail</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/mobile.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        .analisa-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:25px; }
+        .analisa-tab { padding:12px 20px; border:2px solid var(--border); border-radius:25px; background:white; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.3s; color:#555; }
+        .analisa-tab:hover { border-color:var(--primary); color:var(--primary); }
+        .analisa-tab.active { background:var(--primary); color:white; border-color:var(--primary); box-shadow:0 4px 15px rgba(103,126,234,0.4); }
+        .analisa-section { display:none; }
+        .analisa-section.active { display:block; }
+        .summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:15px; margin-bottom:25px; }
+        .summary-card { background:white; border-radius:12px; padding:20px; text-align:center; box-shadow:0 4px 15px rgba(0,0,0,0.08); border-top:4px solid var(--primary); }
+        .summary-card .value { font-size:28px; font-weight:700; color:var(--primary); margin:8px 0; }
+        .summary-card .label { font-size:13px; color:#888; font-weight:600; text-transform:uppercase; }
+        .summary-card .sub { font-size:12px; color:#aaa; margin-top:4px; }
+        .summary-card.green { border-top-color:#10b981; } .summary-card.green .value { color:#10b981; }
+        .summary-card.orange { border-top-color:#f59e0b; } .summary-card.orange .value { color:#f59e0b; }
+        .summary-card.red { border-top-color:#ef4444; } .summary-card.red .value { color:#ef4444; }
+        .summary-card.blue { border-top-color:#3b82f6; } .summary-card.blue .value { color:#3b82f6; }
+        .summary-card.purple { border-top-color:#8b5cf6; } .summary-card.purple .value { color:#8b5cf6; }
+        .chart-container { background:white; border-radius:12px; padding:25px; box-shadow:0 4px 15px rgba(0,0,0,0.08); margin-bottom:25px; }
+        .chart-container h4 { margin-bottom:15px; color:#333; font-size:16px; }
+        .heatmap-table { width:100%; border-collapse:collapse; margin-top:10px; }
+        .heatmap-table th { background:#f1f5f9; padding:10px; font-size:12px; text-align:center; border:1px solid #e2e8f0; }
+        .heatmap-table td { padding:10px; text-align:center; border:1px solid #e2e8f0; font-weight:600; font-size:14px; }
+        .heatmap-table td:first-child { text-align:left; background:#f8fafc; font-weight:600; }
+        .tp-green { background:#d1fae5; color:#065f46; }
+        .tp-lightgreen { background:#a7f3d0; color:#065f46; }
+        .tp-yellow { background:#fef9c3; color:#854d0e; }
+        .tp-orange { background:#ffedd5; color:#9a3412; }
+        .tp-red { background:#fee2e2; color:#991b1b; }
+        .badge-trend-up { color:#10b981; font-weight:700; }
+        .badge-trend-down { color:#ef4444; font-weight:700; }
+        .badge-trend-stable { color:#f59e0b; font-weight:700; }
+        .priority-high { background:#fee2e2; border-left:4px solid #ef4444; padding:15px; border-radius:0 8px 8px 0; margin-bottom:10px; }
+        .priority-med { background:#fef3c7; border-left:4px solid #f59e0b; padding:15px; border-radius:0 8px 8px 0; margin-bottom:10px; }
+        .insight-box { background:linear-gradient(135deg,#667eea15,#764ba215); border:1px solid #667eea40; border-radius:12px; padding:20px; margin-top:20px; }
+        .insight-box h4 { color:#667eea; margin-bottom:10px; }
+        .insight-box p { color:#444; margin:5px 0; font-size:14px; }
+        .filter-row { display:flex; gap:15px; flex-wrap:wrap; margin-bottom:25px; align-items:flex-end; }
+        .filter-row .form-group { flex:1; min-width:150px; }
+        .export-btn { background:linear-gradient(135deg,#667eea,#764ba2); color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:600; font-size:14px; }
+        .export-btn:hover { opacity:0.9; transform:translateY(-1px); }
+        .rank-badge { width:36px; height:36px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; }
+        .rank-1 { background:#FFD700; color:#333; }
+        .rank-2 { background:#C0C0C0; color:#333; }
+        .rank-3 { background:#CD7F32; color:#fff; }
+        .rank-other { background:#e2e8f0; color:#555; }
+        @media(max-width:768px) {
+            .analisa-tabs { gap:5px; }
+            .analisa-tab { padding:8px 12px; font-size:12px; }
+            .summary-grid { grid-template-columns:repeat(2,1fr); }
+            .filter-row { flex-direction:column; }
+            .heatmap-table { font-size:11px; overflow-x:auto; display:block; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loader"><div class="spinner"></div><div class="loader-message">Loading...</div></div>
+    <div id="toast-container"></div>
+
+    <div class="header">
+        <div class="header-top">
+            <div class="header-title">
+                <div class="school-logo">SI</div>
+                <div class="title-text">
+                    <h1>ANALISA PENCAPAIAN PBD</h1>
+                    <p>Sistem analisis prestasi dan perkembangan murid</p>
+                </div>
+            </div>
+            <a href="index.html" class="admin-link">🏠 HOME</a>
+        </div>
+    </div>
+
+    <div class="content-container">
+        <!-- TAB NAVIGATION -->
+        <div class="analisa-tabs">
+            <button class="analisa-tab active" onclick="switchAnalisaTab('individu', this)">👤 Individu</button>
+            <button class="analisa-tab" onclick="switchAnalisaTab('kelas', this)">🏫 Prestasi Kelas</button>
+            <button class="analisa-tab" onclick="switchAnalisaTab('intervensi', this)">⚠️ Intervensi</button>
+            <button class="analisa-tab" onclick="switchAnalisaTab('perbandingan', this)">📊 Perbandingan</button>
+            <button class="analisa-tab" onclick="switchAnalisaTab('trend', this)">📈 Trend Subjek</button>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- TAB 1: INDIVIDU -->
+        <!-- ============================================================ -->
+        <div id="section-individu" class="analisa-section active">
+            <div class="filter-row">
+                <div class="form-group"><label>Subjek:</label><select id="ind-subjek" class="form-control" onchange="indLoadTahun()"><option value="">Pilih Subjek</option></select></div>
+                <div class="form-group"><label>Tahun:</label><select id="ind-tahun" class="form-control" onchange="indLoadKelas()"><option value="">Pilih Tahun</option></select></div>
+                <div class="form-group"><label>Kelas:</label><select id="ind-kelas" class="form-control" onchange="indLoadMurid()"><option value="">Pilih Kelas</option></select></div>
+                <div class="form-group"><label>Murid:</label><select id="ind-murid" class="form-control" onchange="indLoadData()"><option value="">Pilih Murid</option></select></div>
+                <div class="form-group"><label>📋 Tempoh:</label><select id="ind-penilaian" class="form-control" onchange="indLoadData()"><option value="">Semua Tempoh</option><option value="P1">Penilaian 1 (Jan–Mei)</option><option value="P2">Penilaian 2 (Jun–Okt)</option></select></div>
+            </div>
+            <div id="ind-content">
+                <div style="text-align:center;padding:60px;color:#999;"><div style="font-size:60px;">👤</div><p>Pilih murid untuk melihat analisis pencapaian</p></div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- TAB 2: PRESTASI KELAS -->
+        <!-- ============================================================ -->
+        <div id="section-kelas" class="analisa-section">
+            <div class="filter-row">
+                <div class="form-group"><label>Subjek:</label><select id="kls-subjek" class="form-control" onchange="klsLoadTahun()"><option value="">Pilih Subjek</option></select></div>
+                <div class="form-group"><label>Tahun:</label><select id="kls-tahun" class="form-control" onchange="klsLoadKelas()"><option value="">Pilih Tahun</option></select></div>
+                <div class="form-group"><label>Kelas:</label><select id="kls-kelas" class="form-control" onchange="klsLoadData()"><option value="">Pilih Kelas</option></select></div>
+                <div class="form-group"><label>📋 Tempoh:</label><select id="kls-penilaian" class="form-control" onchange="klsLoadData()"><option value="">Semua Tempoh</option><option value="P1">Penilaian 1 (Jan–Mei)</option><option value="P2">Penilaian 2 (Jun–Okt)</option></select></div>
+                <button class="export-btn" onclick="klsExportPDF()">📄 Export PDF</button>
+            </div>
+            <div id="kls-content">
+                <div style="text-align:center;padding:60px;color:#999;"><div style="font-size:60px;">🏫</div><p>Pilih subjek, tahun dan kelas</p></div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- TAB 3: INTERVENSI -->
+        <!-- ============================================================ -->
+        <div id="section-intervensi" class="analisa-section">
+            <div class="filter-row">
+                <div class="form-group"><label>Subjek:</label><select id="int-subjek" class="form-control" onchange="intLoadTahun()"><option value="">Pilih Subjek</option></select></div>
+                <div class="form-group"><label>Tahun:</label><select id="int-tahun" class="form-control" onchange="intLoadKelas()"><option value="">Pilih Tahun</option></select></div>
+                <div class="form-group"><label>Kelas:</label><select id="int-kelas" class="form-control" onchange="intLoadData()"><option value="">Pilih Kelas</option></select></div>
+                <div class="form-group"><label>Kriteria:</label><select id="int-kriteria" class="form-control" onchange="intLoadData()"><option value="3">TP ≤ 3</option><option value="2">TP ≤ 2</option></select></div>
+                <div class="form-group"><label>📋 Tempoh:</label><select id="int-penilaian" class="form-control" onchange="intLoadData()"><option value="">Semua Tempoh</option><option value="P1">Penilaian 1 (Jan–Mei)</option><option value="P2">Penilaian 2 (Jun–Okt)</option></select></div>
+                <button class="export-btn" onclick="intExportPDF()">📄 Export PDF</button>
+            </div>
+            <div id="int-content">
+                <div style="text-align:center;padding:60px;color:#999;"><div style="font-size:60px;">⚠️</div><p>Pilih subjek, tahun dan kelas</p></div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- TAB 4: PERBANDINGAN KELAS -->
+        <!-- ============================================================ -->
+        <div id="section-perbandingan" class="analisa-section">
+            <div class="filter-row">
+                <div class="form-group"><label>Subjek:</label><select id="prb-subjek" class="form-control" onchange="prbLoadTahun()"><option value="">Pilih Subjek</option></select></div>
+                <div class="form-group"><label>Tahun:</label><select id="prb-tahun" class="form-control" onchange="prbLoadData()"><option value="">Pilih Tahun</option></select></div>
+                <div class="form-group"><label>📋 Tempoh:</label><select id="prb-penilaian" class="form-control" onchange="prbLoadData()"><option value="">Semua Tempoh</option><option value="P1">Penilaian 1 (Jan–Mei)</option><option value="P2">Penilaian 2 (Jun–Okt)</option></select></div>
+                <button class="export-btn" onclick="prbExportPDF()">📄 Export PDF</button>
+            </div>
+            <div id="prb-content">
+                <div style="text-align:center;padding:60px;color:#999;"><div style="font-size:60px;">📊</div><p>Pilih subjek dan tahun untuk perbandingan</p></div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- TAB 5: TREND SUBJEK -->
+        <!-- ============================================================ -->
+        <div id="section-trend" class="analisa-section">
+            <div class="filter-row">
+                <div class="form-group"><label>Tahun Rekod:</label><select id="trn-tahunrekod" class="form-control" onchange="trnLoadSubjek()"><option value="">Pilih Tahun</option></select></div>
+                <div class="form-group"><label>Subjek:</label><select id="trn-subjek" class="form-control" onchange="trnLoadTahun()"><option value="">Pilih Subjek</option></select></div>
+                <div class="form-group"><label>Tahun Darjah:</label><select id="trn-tahun" class="form-control" onchange="trnLoadData()"><option value="">Pilih Tahun</option></select></div>
+                <div class="form-group"><label>📋 Tempoh:</label><select id="trn-penilaian" class="form-control" onchange="trnLoadData()"><option value="">Semua Tempoh</option><option value="P1">Penilaian 1 (Jan–Mei)</option><option value="P2">Penilaian 2 (Jun–Okt)</option></select></div>
+                <button class="export-btn" onclick="trnExportPDF()">📄 Export PDF</button>
+            </div>
+            <div id="trn-content">
+                <div style="text-align:center;padding:60px;color:#999;"><div style="font-size:60px;">📈</div><p>Pilih tahun rekod, subjek dan tahun darjah</p></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="js/analisa.js"></script>
+</body>
+</html>

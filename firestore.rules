@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Sistem Rekod PBD (hipersispbd) ──────────────────────────────
+    match /murid/{docId} {
+      allow read, write: if true;
+    }
+    match /subjek/{docId} {
+      allow read, write: if true;
+    }
+    match /topik_pembelajaran/{docId} {
+      allow read, write: if true;
+    }
+    match /rekod_pbd/{docId} {
+      allow read, write: if true;
+    }
+    match /config/{docId} {
+      allow read, write: if true;
+    }
+    match /semakan_penilaian/{docId} {
+      allow read, write: if true;
+    }
+
+    // ── Collections lama (kekalkan) ─────────────────────────────────
+    match /students/{docId} {
+      allow read, write: if true;
+    }
+    match /teachers/{docId} {
+      allow read, write: if true;
+    }
+    match /school_settings/{docId} {
+      allow read, write: if true;
+    }
+    match /surat_categories/{docId} {
+      allow read, write: if true;
+    }
+    match /surat_generated/{docId} {
+      allow read, write: if true;
+    }
+    match /surat_batches/{docId} {
+      allow read, write: if true;
+    }
+    match /surat_templates/{docId} {
+      allow read, write: if true;
+    }
+    match /rujukan_counters/{docId} {
+      allow read, write: if true;
+    }
+  }
+}

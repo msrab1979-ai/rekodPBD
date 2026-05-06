@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semakan Pentadbir - Sistem Rekod PBD</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/mobile.css">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        /* LOGIN */
+        .login-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 80vh;
+        }
+        .login-card {
+            background: white;
+            padding: 50px 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            text-align: center;
+            max-width: 420px;
+            width: 100%;
+        }
+        .login-icon { font-size: 70px; margin-bottom: 20px; }
+        .login-card h2 { font-size: 26px; color: var(--dark); margin-bottom: 8px; }
+        .login-card p { color: var(--text-light); margin-bottom: 30px; font-size: 15px; }
+        .login-input {
+            font-size: 22px;
+            letter-spacing: 10px;
+            text-align: center;
+            padding: 16px;
+            border: 3px solid var(--border);
+            border-radius: 14px;
+            width: 100%;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+        }
+        .login-input:focus { outline: none; border-color: var(--primary); }
+        .btn-login {
+            width: 100%;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102,126,234,0.4); }
+
+        /* SUMMARY CARDS */
+        .summary-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .summary-semak {
+            padding: 25px 20px;
+            border-radius: 18px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+        }
+        .summary-semak:hover { transform: translateY(-4px); }
+        .summary-semak.belum { background: #fef2f2; border-color: #fca5a5; }
+        .summary-semak.belum.active { background: #fee2e2; border-color: #ef4444; box-shadow: 0 4px 20px rgba(239,68,68,0.2); }
+        .summary-semak.sudah { background: #f0fdf4; border-color: #86efac; }
+        .summary-semak.sudah.active { background: #dcfce7; border-color: #22c55e; box-shadow: 0 4px 20px rgba(34,197,94,0.2); }
+        .summary-semak .big-count { font-size: 52px; font-weight: 800; line-height: 1; margin: 8px 0; }
+        .summary-semak.belum .big-count { color: #ef4444; }
+        .summary-semak.sudah .big-count { color: #16a34a; }
+        .summary-semak .label { font-size: 15px; font-weight: 700; }
+        .summary-semak.belum .label { color: #dc2626; }
+        .summary-semak.sudah .label { color: #15803d; }
+        .summary-semak .hint { font-size: 12px; margin-top: 5px; opacity: 0.7; }
+
+        /* FILTER BAR */
+        .filter-bar {
+            background: white;
+            padding: 20px 25px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        .filter-bar .form-group { margin-bottom: 0; min-width: 170px; flex: 1; }
+        .filter-bar label { font-size: 13px; font-weight: 600; color: var(--text-light); display: block; margin-bottom: 6px; }
+
+        /* SEMAK CARDS */
+        .semak-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px 25px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border-left: 6px solid;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            transition: all 0.3s;
+        }
+        .semak-card:hover { box-shadow: 0 6px 25px rgba(0,0,0,0.12); transform: translateX(3px); }
+        .semak-card.belum { border-color: #ef4444; }
+        .semak-card.sudah { border-color: #22c55e; }
+        .semak-card-info h3 { font-size: 18px; color: var(--dark); margin-bottom: 6px; }
+        .semak-card-info p { font-size: 13px; color: var(--text-light); margin: 3px 0; }
+        .semak-card-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-card {
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: none;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        .btn-card:hover { transform: translateY(-2px); }
+        .btn-card-green { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; }
+        .btn-card-blue  { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .btn-card-orange{ background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+        .disemak-badge {
+            display: inline-block;
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 12px;
+            color: #15803d;
+            margin-top: 8px;
+        }
+
+        /* MURID LIST IN MODAL */
+        .murid-row {
+            display: flex;
+            align-items: center;
+            padding: 10px 5px;
+            border-bottom: 1px solid var(--border);
+            gap: 10px;
+        }
+        .murid-row:last-child { border-bottom: none; }
+        .murid-bil {
+            width: 28px; height: 28px;
+            background: var(--primary);
+            color: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700; flex-shrink: 0;
+        }
+        .murid-nama { flex: 1; font-size: 14px; }
+        .murid-rekod { font-size: 11px; color: #888; white-space: nowrap; }
+        .tp-badge {
+            padding: 4px 11px; border-radius: 20px;
+            font-size: 13px; font-weight: 700;
+            min-width: 50px; text-align: center;
+        }
+        .tp-6,.tp-5 { background: #dcfce7; color: #15803d; }
+        .tp-4 { background: #fef9c3; color: #854d0e; }
+        .tp-3 { background: #ffedd5; color: #9a3412; }
+        .tp-2,.tp-1 { background: #fee2e2; color: #991b1b; }
+        .pg-badge { font-size: 12px; padding: 3px 8px; border-radius: 10px; }
+        .pg-m { background: #dcfce7; color: #15803d; }
+        .pg-b { background: #fee2e2; color: #991b1b; }
+        .tp-stars { color: #f59e0b; font-size: 13px; letter-spacing: 1px; }
+
+        /* MODAL OVERRIDE */
+        .modal { display: none; }
+        .modal.open { display: flex; }
+
+        /* SEMAK FORM */
+        .semak-form-box {
+            margin-top: 18px;
+            padding: 20px;
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+            border-radius: 14px;
+        }
+        .semak-form-box h4 { color: #15803d; margin-bottom: 15px; }
+        .already-semak-box {
+            margin-top: 18px;
+            padding: 15px 18px;
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+            border-radius: 14px;
+            font-size: 14px;
+        }
+        .already-semak-box p { margin: 5px 0; }
+
+        /* EMPTY STATE */
+        .empty-state { text-align: center; padding: 50px 20px; color: var(--text-light); }
+        .empty-state .icon { font-size: 60px; margin-bottom: 15px; }
+
+        /* PDF TEMPLATE */
+        .pdf-semak { width: 210mm; padding: 15mm; background: white; font-family: 'Amiri', Arial, sans-serif; display: none; }
+        .pdf-semak.active { display: block; }
+
+        @media (max-width: 600px) {
+            .summary-semak .big-count { font-size: 38px; }
+            .semak-card { flex-direction: column; align-items: flex-start; }
+            .filter-bar { flex-direction: column; }
+            .login-card { padding: 30px 20px; }
+            .btn-card { width: 100%; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loader"><div class="spinner"></div><div class="loader-message">Loading...</div></div>
+    <div id="toast-container"></div>
+
+    <!-- =================== LOGIN =================== -->
+    <div id="loginScreen">
+        <div class="login-wrap">
+            <div class="login-card">
+                <div class="login-icon">📋</div>
+                <h2>SEMAKAN PENTADBIR</h2>
+                <p>Masukkan kata laluan untuk masuk ke panel semakan</p>
+                <div style="position:relative;margin-bottom:20px;">
+                    <input type="password" id="semakPassword" class="login-input"
+                        placeholder="••••••••" style="margin-bottom:0;padding-right:52px;"
+                        onkeypress="if(event.key==='Enter') loginSemak()">
+                    <button type="button" onclick="togglePwVisible()"
+                        id="btnTogglePw"
+                        title="Tunjuk/Sembunyi kata laluan"
+                        style="position:absolute;right:14px;top:50%;transform:translateY(-50%);
+                               background:none;border:none;cursor:pointer;font-size:22px;
+                               color:#888;padding:4px;line-height:1;">
+                        👁️
+                    </button>
+                </div>
+                <button class="btn-login" onclick="loginSemak()">MASUK →</button>
+                <div style="margin-top:20px;">
+                    <a href="index.html" style="color:var(--text-light);font-size:14px;text-decoration:none;">
+                        ← Kembali ke Menu Utama
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =================== MAIN PANEL =================== -->
+    <div id="mainPanel" style="display:none;">
+
+        <div class="header">
+            <div class="header-top">
+                <div class="header-title">
+                    <div class="school-logo" style="font-size:20px;">📋</div>
+                    <div class="title-text">
+                        <h1>SEMAKAN PENTADBIR</h1>
+                        <p>Semak dan sahkan rekod penilaian guru</p>
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                    <a href="index.html" class="admin-link" style="background:var(--primary);">🏠 HOME</a>
+                    <button onclick="logoutSemak()"
+                        style="background:var(--danger);color:white;padding:10px 18px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;">
+                        🚪 Keluar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-container">
+
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+                <div class="form-group">
+                    <label>📅 TAHUN REKOD</label>
+                    <select id="filterTahunRekod" class="form-control" onchange="loadDashboard()">
+                        <option value="">Pilih Tahun</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>📋 TEMPOH PENILAIAN</label>
+                    <select id="filterPenilaian" class="form-control" onchange="loadDashboard()">
+                        <option value="P1">Penilaian 1 — Januari hingga Mei</option>
+                        <option value="P2">Penilaian 2 — Jun hingga Oktober</option>
+                    </select>
+                </div>
+                <div style="align-self:flex-end;padding-bottom:3px;">
+                    <span id="loadingText" style="display:none;color:var(--text-light);font-size:13px;">⏳ Memuatkan...</span>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="summary-bar">
+                <div class="summary-semak belum active" id="cardBelum" onclick="showTab('belum')">
+                    <div style="font-size:28px;">🔴</div>
+                    <div class="big-count" id="countBelum">0</div>
+                    <div class="label">BELUM DISEMAK</div>
+                    <div class="hint">Klik untuk lihat senarai</div>
+                </div>
+                <div class="summary-semak sudah" id="cardSudah" onclick="showTab('sudah')">
+                    <div style="font-size:28px;">✅</div>
+                    <div class="big-count" id="countSudah">0</div>
+                    <div class="label">SUDAH DISEMAK</div>
+                    <div class="hint">Klik untuk lihat senarai</div>
+                </div>
+            </div>
+
+            <!-- Filter Kad: Subjek + Darjah -->
+            <div id="cardFilterBar" style="display:none;background:white;border-radius:14px;padding:16px 20px;margin-bottom:20px;box-shadow:0 2px 10px rgba(0,0,0,0.06);display:none;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div>
+                        <label style="font-size:12px;font-weight:700;color:var(--text-light);display:block;margin-bottom:6px;">📚 TAPIS MENGIKUT SUBJEK</label>
+                        <select id="filterKadSubjek" class="form-control" onchange="applyCardFilter()">
+                            <option value="">Semua Subjek</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:700;color:var(--text-light);display:block;margin-bottom:6px;">🏫 TAPIS MENGIKUT DARJAH</label>
+                        <select id="filterKadDarjah" class="form-control" onchange="applyCardFilter()">
+                            <option value="">Semua Darjah</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Belum -->
+            <div id="tabBelum">
+                <h3 style="color:#dc2626;margin-bottom:18px;font-size:18px;">🔴 BELUM DISEMAK</h3>
+                <div id="listBelum">
+                    <div class="empty-state"><div class="icon">⏳</div><p>Pilih Tahun Rekod untuk melihat senarai</p></div>
+                </div>
+            </div>
+
+            <!-- Tab: Sudah -->
+            <div id="tabSudah" style="display:none;">
+                <h3 style="color:#15803d;margin-bottom:18px;font-size:18px;">✅ SUDAH DISEMAK</h3>
+                <div id="listSudah">
+                    <div class="empty-state"><div class="icon">✅</div><p>Tiada rekod yang telah disemak</p></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- =================== MODAL: SEMAKAN =================== -->
+    <div id="modalSemak" class="modal">
+        <div class="modal-content" style="max-width:700px;">
+            <div class="modal-header"
+                style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border-radius:12px 12px 0 0;padding:20px 25px;">
+                <h2 id="modalSemakTitle" style="color:white;font-size:18px;margin:0;">📋 SEMAKAN REKOD</h2>
+                <button class="close-btn" onclick="closeSemakModal()" style="color:white;background:rgba(255,255,255,0.2);border-radius:6px;width:32px;height:32px;font-size:18px;border:none;cursor:pointer;">✕</button>
+            </div>
+            <div class="modal-body" style="max-height:75vh;overflow-y:auto;">
+
+                <!-- Info -->
+                <div id="semakInfoHeader" style="background:var(--light);padding:15px;border-radius:10px;margin-bottom:15px;"></div>
+
+                <!-- Topik Breakdown -->
+                <div id="topikBreakdownBox" style="display:none;margin-bottom:18px;"></div>
+
+                <!-- Sort -->
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+                    <h4 style="margin:0;font-size:15px;">👥 Senarai Murid — Purata TP</h4>
+                    <select id="sortMurid" class="form-control" style="width:auto;font-size:13px;" onchange="sortAndDisplayMurid()">
+                        <option value="nama">Nama A → Z</option>
+                        <option value="nama_desc">Nama Z → A</option>
+                        <option value="tp_desc">TP Tinggi → Rendah</option>
+                        <option value="tp_asc" selected>TP Rendah → Tinggi ⚠️</option>
+                        <option value="rekod_desc">Rekod Terbanyak</option>
+                    </select>
+                </div>
+
+                <!-- Murid List -->
+                <div id="muridSemakList"
+                    style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:10px;"></div>
+
+                <!-- Kelas Avg -->
+                <div id="kelasAvgBox"
+                    style="display:none;background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:16px;border-radius:12px;margin-top:15px;text-align:center;">
+                    <div style="font-size:13px;opacity:0.85;">Purata Kelas</div>
+                    <div id="kelasAvgValue" style="font-size:34px;font-weight:800;"></div>
+                    <div id="kelasAvgLabel" style="font-size:13px;opacity:0.85;"></div>
+                </div>
+
+                <!-- Semak Form (belum disemak) -->
+                <div id="semakForm" class="semak-form-box" style="display:none;">
+                    <h4>✅ TANDAKAN SUDAH DISEMAK</h4>
+                    <div class="form-group">
+                        <label style="font-weight:700;font-size:15px;">Nama Pentadbir: *</label>
+                        <input type="text" id="inputDisemakOleh" class="form-control"
+                            placeholder="Contoh: CIK AMINAH BINTI HASSAN"
+                            style="font-size:15px;text-transform:uppercase;padding:12px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight:700;">Catatan: <span style="font-weight:400;color:#888;">(tidak wajib)</span></label>
+                        <textarea id="inputCatatanSemak" class="form-control" rows="2"
+                            placeholder="Contoh: Rekod lengkap dan kemas"></textarea>
+                    </div>
+                </div>
+
+                <!-- Already Semak Info -->
+                <div id="disemakInfo" class="already-semak-box" style="display:none;">
+                    <h4 style="color:#15803d;margin-bottom:10px;">✅ Rekod Ini Telah Disemak</h4>
+                    <p>👤 <strong>Disemak oleh:</strong> <span id="infoDisemakOleh"></span></p>
+                    <p>📅 <strong>Tarikh semak:</strong> <span id="infoTarikhSemak"></span></p>
+                    <p>💬 <strong>Catatan:</strong> <span id="infoCatatanSemak"></span></p>
+                </div>
+
+            </div>
+            <div class="modal-footer" id="modalSemakFooter" style="gap:10px;"></div>
+        </div>
+    </div>
+
+    <!-- =================== MODAL: CONFIRM RESET =================== -->
+    <div id="modalConfirmReset" class="modal">
+        <div class="modal-content" style="max-width:460px;">
+            <div class="modal-header">
+                <h2>⚠️ Buka Semula Semakan?</h2>
+                <button class="close-btn" onclick="closeModal('modalConfirmReset')">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:15px;">Adakah anda pasti mahu membuka semula semakan ini?</p>
+                <div id="resetInfoBox"
+                    style="margin-top:15px;padding:14px;background:var(--light);border-radius:10px;font-size:14px;line-height:1.8;"></div>
+                <div style="margin-top:15px;padding:12px;background:#fef2f2;border:2px solid #fca5a5;border-radius:10px;">
+                    <p style="color:var(--danger);font-weight:700;margin:0;">
+                        ⚠️ Guru akan boleh mengedit rekod semula selepas ini.
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-warning" onclick="confirmReset()">🔓 Ya, Buka Semula</button>
+                <button class="btn btn-primary" onclick="closeModal('modalConfirmReset')">❌ Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =================== PDF TEMPLATE =================== -->
+    <div id="pdfSemakTemplate" class="pdf-semak">
+        <div style="text-align:center;margin-bottom:18px;border-bottom:3px solid #667eea;padding-bottom:14px;">
+            <h1 id="pdfNamaSekolah" style="font-size:18px;color:#667eea;margin:5px 0;font-weight:700;"></h1>
+            <h2 style="font-size:14px;color:#333;margin:5px 0;">LAPORAN RUMUSAN PENILAIAN PBD</h2>
+            <p id="pdfSubtitle" style="font-size:11px;color:#666;margin:4px 0;"></p>
+        </div>
+        <div id="pdfInfoGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;font-size:10px;"></div>
+        <table style="width:100%;border-collapse:collapse;font-size:10px;">
+            <thead>
+                <tr style="background:#667eea;color:white;">
+                    <th style="padding:8px;border:1px solid #ddd;width:7%;">BIL</th>
+                    <th style="padding:8px;border:1px solid #ddd;text-align:left;">NAMA MURID</th>
+                    <th style="padding:8px;border:1px solid #ddd;width:13%;">BIL REKOD</th>
+                    <th style="padding:8px;border:1px solid #ddd;width:14%;">PURATA TP</th>
+                    <th style="padding:8px;border:1px solid #ddd;width:22%;">PENGUASAAN</th>
+                </tr>
+            </thead>
+            <tbody id="pdfMuridTbody"></tbody>
+        </table>
+        <div id="pdfFooterBox" style="margin-top:18px;padding-top:12px;border-top:2px solid #667eea;"></div>
+    </div>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="js/semakan.js"></script>
+</body>
+</html>

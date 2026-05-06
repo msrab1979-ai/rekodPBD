@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Rekod PBD - SK Sultan Ismail</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/mobile.css">
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            text-align: center;
+            color: white;
+            border-radius: 16px;
+            margin-bottom: 40px;
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+        }
+        .hero-section h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        .hero-section p {
+            font-size: 18px;
+            opacity: 0.95;
+        }
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        .menu-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 2px solid transparent;
+            text-decoration: none;
+            color: var(--text);
+        }
+        .menu-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+            border-color: var(--primary);
+        }
+        .card-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+        .menu-card h3 {
+            font-size: 20px;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+        .menu-card p {
+            font-size: 14px;
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+        .admin-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--danger);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4);
+            transition: all 0.3s;
+            z-index: 100;
+        }
+        .admin-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 30px rgba(220, 38, 38, 0.6);
+        }
+        @media (max-width: 768px) {
+            .hero-section h1 { font-size: 24px; }
+            .hero-section p { font-size: 16px; }
+            .menu-grid { grid-template-columns: 1fr; gap: 20px; }
+            .admin-btn { bottom: 20px; right: 20px; padding: 12px 20px; font-size: 14px; }
+        }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+</head>
+<body>
+    <div class="content-container" style="max-width: 1200px; margin: 0 auto; padding: 30px 20px;">
+        
+        <div class="hero-section">
+            <div class="school-logo" id="homeLogo" style="width: 80px; height: 80px; margin: 0 auto 20px; background: white; color: #667eea; font-size: 36px; font-weight: 700; display: flex; align-items: center; justify-content: center; border-radius: 50%; box-shadow: 0 4px 20px rgba(0,0,0,0.1); overflow:hidden;">SI</div>
+            <h1 id="homeTitle">SISTEM REKOD PBD</h1>
+            <p id="homeSubtitle">SK Sultan Ismail - Pengurusan Penilaian Berasaskan Darjah</p>
+        </div>
+
+        <div class="menu-grid">
+            
+            <a href="masuk-rekod.html" class="menu-card">
+                <div class="card-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    ✏️
+                </div>
+                <h3>MASUK REKOD</h3>
+                <p>Masukkan penilaian murid untuk setiap subjek, topik dan sub-topik pembelajaran</p>
+            </a>
+
+            <a href="rekod-pbd.html" class="menu-card">
+                <div class="card-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    📊
+                </div>
+                <h3>REKOD PBD</h3>
+                <p>Lihat, edit dan cetak rekod penilaian yang telah dimasukkan mengikut tahun</p>
+            </a>
+
+            <a href="analisa.html" class="menu-card">
+                <div class="card-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    📈
+                </div>
+                <h3>ANALISA</h3>
+                <p>Analisis pencapaian dan perkembangan murid merentasi topik pembelajaran</p>
+            </a>
+
+            <a href="daftar-topik.html" class="menu-card">
+                <div class="card-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                    📖
+                </div>
+                <h3>DAFTAR TOPIK</h3>
+                <p>Urus topik dan sub-topik pembelajaran untuk setiap subjek</p>
+            </a>
+
+            <a href="pengurusan-murid.html" class="menu-card">
+                <div class="card-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                    👥
+                </div>
+                <h3>PENGURUSAN MURID</h3>
+                <p>Daftar dan kemaskini maklumat murid termasuk agama untuk penentuan subjek</p>
+            </a>
+
+            <a href="semakan.html" class="menu-card">
+                <div class="card-icon" style="background: linear-gradient(135deg, #6a3093 0%, #a044ff 100%);">
+                    📋
+                </div>
+                <h3>SEMAKAN PENTADBIR</h3>
+                <p>Semak dan sahkan rekod penilaian guru mengikut Penilaian 1 dan Penilaian 2</p>
+            </a>
+
+        </div>
+
+        <div style="text-align: center; margin-top: 50px; padding: 25px; background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); border-radius: 12px;">
+            <p style="margin: 0; font-size: 16px; color: #333;">
+                <strong>💡 Tip:</strong> Subjek diuruskan di ADMIN panel. Guru hanya urus topik pembelajaran sahaja.
+            </p>
+        </div>
+
+    </div>
+
+    <a href="admin.html" class="admin-btn">⚙️ ADMIN</a>
+
+    <footer style="text-align: center; padding: 30px 20px; color: var(--text-light); margin-top: 50px; border-top: 1px solid var(--border);">
+        <p style="margin: 0;">Sistem Rekod PBD © 2026 - SK Sultan Ismail</p>
+    </footer>
+    <script>
+    db.collection('config').doc('system_settings').get().then(function(doc) {
+        if (!doc.exists) return;
+        var c = doc.data();
+        if (c.headerTitle) document.getElementById('homeTitle').textContent = c.headerTitle;
+        if (c.namaSekolah) document.getElementById('homeSubtitle').textContent = c.namaSekolah + ' - Pengurusan Penilaian Berasaskan Darjah';
+        if (c.logoBase64) {
+            var el = document.getElementById('homeLogo');
+            el.style.background = 'none';
+            el.style.color = 'transparent';
+            el.style.fontSize = '0';
+            el.innerHTML = '<img src="' + c.logoBase64 + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+        }
+    }).catch(function(e){ console.error(e); });
+    </script>
+</body>
+</html>

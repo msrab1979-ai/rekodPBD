@@ -1,0 +1,90 @@
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+
+  .header {
+    padding: 15px;
+  }
+
+  .header-top {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+
+  .title-text h1 {
+    font-size: 20px;
+  }
+
+  .admin-link {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .menu-container {
+    padding: 20px 15px;
+  }
+
+  .menu-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .menu-box {
+    padding: 30px 20px;
+  }
+
+  .menu-icon {
+    font-size: 48px;
+  }
+
+  table, thead, tbody, th, td, tr {
+    display: block;
+  }
+
+  thead tr {
+    display: none;
+  }
+
+  tbody tr {
+    margin-bottom: 15px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 15px;
+    background: white;
+  }
+
+  td {
+    border: none;
+    padding: 8px 0;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  td:before {
+    content: attr(data-label);
+    font-weight: 600;
+    margin-right: 10px;
+  }
+
+  #toast-container {
+    left: 10px;
+    right: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .school-logo {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .title-text h1 {
+    font-size: 18px;
+  }
+
+  .menu-box h2 {
+    font-size: 18px;
+  }
+}
