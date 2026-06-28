@@ -87,36 +87,33 @@ function togglePwVisible() {
 async function initDashboard() {
     showLoading('Memuatkan dashboard...');
     try {
-        var configDoc = await firestoreRetry(function() {
-            return db.collection('config').doc('system_settings').get();
-        });
+        var currentYear = new Date().getFullYear().toString();
+        var month = new Date().getMonth() + 1;
+        var penilaian = month <= 5 ? 'P1' : 'P2';
+
+        // Tetapkan dropdown awal dulu — jangan tunggu Firestore
+        var sel = document.getElementById('filterTahunRekod');
+        sel.innerHTML = '';
+        sel.add(new Option(currentYear, currentYear, true, true));
+        document.getElementById('filterPenilaian').value = penilaian;
+
+        // Load config & rekod serentak
+        var results = await Promise.all([
+            firestoreRetry(function() {
+                return db.collection('config').doc('system_settings').get();
+            }),
+            firestoreRetry(function() {
+                return db.collection('rekod_pbd')
+                    .where('tahun_rekod', '==', currentYear)
+                    .select('tahun_rekod')
+                    .limit(1).get();
+            })
+        ]);
+
+        var configDoc = results[0];
         if (configDoc.exists && configDoc.data().namaSekolah) {
             namaSekolah = configDoc.data().namaSekolah;
         }
-
-        var snap = await firestoreRetry(function() {
-            return db.collection('rekod_pbd').get();
-        });
-        var tahunSet = new Set();
-        snap.forEach(function(doc) {
-            var t = doc.data().tahun_rekod;
-            if (t) tahunSet.add(t);
-        });
-
-        var sel = document.getElementById('filterTahunRekod');
-        sel.innerHTML = '';
-        var currentYear = new Date().getFullYear().toString();
-        var tahunList = Array.from(tahunSet).sort().reverse();
-        if (tahunList.length === 0) tahunList.push(currentYear);
-
-        tahunList.forEach(function(t) {
-            var opt = new Option(t, t);
-            if (t === currentYear) opt.selected = true;
-            sel.add(opt);
-        });
-
-        var month = new Date().getMonth() + 1;
-        document.getElementById('filterPenilaian').value = month <= 5 ? 'P1' : 'P2';
 
         hideLoading();
         await loadDashboard();
@@ -141,19 +138,31 @@ async function loadDashboard() {
         var startDate = penilaian === 'P1' ? tahunRekod + '-01-01' : tahunRekod + '-06-01';
         var endDate   = penilaian === 'P1' ? tahunRekod + '-05-31' : tahunRekod + '-10-31';
 
-        // Step 1: Semua rekod_pbd untuk tahun ini
-        var rekodSnap = await firestoreRetry(function() {
-            return db.collection('rekod_pbd')
-                .where('tahun_rekod', '==', tahunRekod)
-                .get();
-        });
+        // Step 1 & 3 serentak — jimat masa
+        var results = await Promise.all([
+            firestoreRetry(function() {
+                return db.collection('rekod_pbd')
+                    .where('tahun_rekod', '==', tahunRekod)
+                    .where('tarikh_string', '>=', startDate)
+                    .where('tarikh_string', '<=', endDate)
+                    .get();
+            }),
+            firestoreRetry(function() {
+                return db.collection('semakan_penilaian')
+                    .where('tahun_rekod', '==', tahunRekod)
+                    .where('penilaian', '==', penilaian)
+                    .get();
+            })
+        ]);
 
-        // Step 2: Group by kelas||subjek dalam date range — ambil nama guru
+        var rekodSnap = results[0];
+        var semakSnap = results[1];
+
+        // Step 2: Group by kelas||subjek — ambil nama guru
         var comboMap = {};
         rekodSnap.forEach(function(doc) {
             var d = doc.data();
             if (!d.tarikh_string) return;
-            if (d.tarikh_string < startDate || d.tarikh_string > endDate) return;
             var key = d.kelas + '||' + d.subjek;
             if (!comboMap[key]) {
                 comboMap[key] = {
@@ -165,20 +174,11 @@ async function loadDashboard() {
                     muridSet: new Set()
                 };
             }
-            // Ambil nama guru — guna yang ada (pertama dijumpai)
             if (!comboMap[key].namaGuru && d.nama_guru) {
                 comboMap[key].namaGuru = d.nama_guru;
             }
             comboMap[key].jumlahRekod++;
             (d.murid || []).forEach(function(m) { comboMap[key].muridSet.add(m.noKp); });
-        });
-
-        // Step 3: Semua semakan untuk tahun + penilaian ini
-        var semakSnap = await firestoreRetry(function() {
-            return db.collection('semakan_penilaian')
-                .where('tahun_rekod', '==', tahunRekod)
-                .where('penilaian', '==', penilaian)
-                .get();
         });
 
         var semakMap = {};
