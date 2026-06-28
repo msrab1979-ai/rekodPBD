@@ -100,10 +100,26 @@ async function onKelasChange() {
         subjekSnap.forEach(d => allSubjekData.push({ id: d.id, ...d.data() }));
         allSubjekData.sort((a, b) => (a.urutan || 0) - (b.urutan || 0));
 
+        // Load semak status untuk semua subjek kelas ini
+        const semakSnapKelas = await firestoreRetry(() =>
+            db.collection('semakan_penilaian')
+                .where('kelas', '==', tahun + ' ' + kelas)
+                .where('tahun_rekod', '==', tahunSemasa).get());
+        const semakKelasMap = {};
+        semakSnapKelas.forEach(d => {
+            const data = d.data();
+            if (!semakKelasMap[data.subjek]) semakKelasMap[data.subjek] = {};
+            semakKelasMap[data.subjek][data.penilaian] = data.status_semak;
+        });
+
         const sel = document.getElementById('inputSubjek');
         sel.innerHTML = '<option value="">Pilih Subjek</option>';
         allSubjekData.forEach(s => {
-            sel.add(new Option(s.subjek, s.id_subjek + '|' + s.subjek + '|' + (s.murid_terlibat || 'SEMUA')));
+            const p1 = semakKelasMap[s.subjek] ? semakKelasMap[s.subjek]['P1'] : null;
+            const p2 = semakKelasMap[s.subjek] ? semakKelasMap[s.subjek]['P2'] : null;
+            const tanda = getSubjekTanda(p1, p2);
+            const label = tanda ? s.subjek + '  ' + tanda : s.subjek;
+            sel.add(new Option(label, s.id_subjek + '|' + s.subjek + '|' + (s.murid_terlibat || 'SEMUA')));
         });
         sel.disabled = false;
 
@@ -600,7 +616,7 @@ async function loadSemakStatus(kelas, subjek, tahunRekod) {
                 .where('subjek', '==', subjek)
                 .where('tahun_rekod', '==', tahunRekod).get());
         snap.forEach(d => {
-            const data = d.data();
+            const data = { id: d.id, ...d.data() };
             if (data.penilaian === 'P1') semakStatusMap.P1 = data;
             if (data.penilaian === 'P2') semakStatusMap.P2 = data;
         });
@@ -620,19 +636,81 @@ function updateStatusBar() {
     const bar = document.getElementById('statusSemakBar');
     if (!bar) return;
     bar.style.display = 'block';
-    function buildBar(doc, label) {
-        if (doc && doc.status_semak === 'DISEMAK') {
-            return '<div style="background:#f0fdf4;border:2px solid #86efac;border-radius:10px;padding:12px 16px;">' +
-                '<div style="font-weight:700;color:#16a34a;font-size:13px;">✅ ' + label + ' — SUDAH DISEMAK</div>' +
-                '<div style="font-size:12px;color:#555;margin-top:3px;">Oleh: ' + (doc.disemak_oleh || '-') + '</div>' +
-                '<div style="font-size:12px;color:#888;">' + (doc.tarikh_semak || '') + '</div></div>';
+
+    function buildBar(doc, label, penilaian) {
+        if (!doc || !doc.status_semak || doc.status_semak === 'BELUM_DISEMAK') {
+            return '<div style="background:#fff7ed;border:2px solid #fed7aa;border-radius:10px;padding:12px 16px;">' +
+                '<div style="font-weight:700;color:#ea580c;font-size:13px;">🔴 ' + label + ' — BELUM DISEMAK</div>' +
+                '<div style="font-size:12px;color:#888;margin-top:3px;">Rekod belum disahkan pentadbir</div></div>';
         }
-        return '<div style="background:#fff7ed;border:2px solid #fed7aa;border-radius:10px;padding:12px 16px;">' +
-            '<div style="font-weight:700;color:#ea580c;font-size:13px;">🔴 ' + label + ' — BELUM DISEMAK</div>' +
-            '<div style="font-size:12px;color:#888;margin-top:3px;">Rekod belum disahkan pentadbir</div></div>';
+        if (doc.status_semak === 'PERLU_BAIKI') {
+            const sejarah = doc.sejarah_semakan || [];
+            const last = sejarah.length > 0 ? sejarah[sejarah.length - 1] : null;
+            const catatan = last ? last.catatan : (doc.catatan_semak || '');
+            const bilSemakan = sejarah.length;
+            return '<div style="background:#fff7ed;border:2px solid #f59e0b;border-radius:10px;padding:12px 16px;">' +
+                '<div style="font-weight:700;color:#b45309;font-size:13px;">⚠️ ' + label + ' — PERLU DIPERBAIKI</div>' +
+                '<div style="font-size:12px;color:#555;margin-top:4px;">Semakan ' + bilSemakan + ' oleh: ' + (doc.disemak_oleh || '-') + '</div>' +
+                (catatan ? '<div style="font-size:12px;color:#92400e;margin-top:4px;font-style:italic;">💬 ' + catatan + '</div>' : '') +
+                '<div style="margin-top:10px;">' +
+                '<button onclick="hantarSemulaRekod(\'' + penilaian + '\')" ' +
+                'style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">' +
+                '✉️ HANTAR SEMULA SELEPAS BAIKI' +
+                '</button></div>' +
+                '</div>';
+        }
+        if (doc.status_semak === 'MENUNGGU_SEMAKAN') {
+            const bilSemakan = doc.jumlah_semakan || (doc.sejarah_semakan ? doc.sejarah_semakan.length : 0);
+            return '<div style="background:#f0f9ff;border:2px solid #7dd3fc;border-radius:10px;padding:12px 16px;">' +
+                '<div style="font-weight:700;color:#0369a1;font-size:13px;">🔄 ' + label + ' — MENUNGGU SEMAKAN BALIK</div>' +
+                '<div style="font-size:12px;color:#555;margin-top:3px;">Rekod telah dihantar semula untuk Semakan ke-' + (bilSemakan + 1) + '</div>' +
+                '<div style="font-size:12px;color:#888;margin-top:2px;">Sila tunggu keputusan penyemak</div></div>';
+        }
+        if (doc.status_semak === 'DISEMAK') {
+            const bilSemakan = doc.jumlah_semakan || (doc.sejarah_semakan ? doc.sejarah_semakan.length : 0);
+            const pusingan = bilSemakan > 0 ? ' &nbsp;•&nbsp; Selesai dalam Semakan ke-' + bilSemakan : '';
+            return '<div style="background:#f0fdf4;border:2px solid #86efac;border-radius:10px;padding:12px 16px;">' +
+                '<div style="font-weight:700;color:#16a34a;font-size:13px;">✅ ' + label + ' — DISEMAK & DISAHKAN</div>' +
+                '<div style="font-size:12px;color:#555;margin-top:3px;">Oleh: ' + (doc.disemak_oleh || '-') + pusingan + '</div>' +
+                '</div>';
+        }
+        return '';
     }
-    document.getElementById('statusP1Bar').innerHTML = buildBar(semakStatusMap.P1, 'Penilaian 1 (Jan–Mei)');
-    document.getElementById('statusP2Bar').innerHTML = buildBar(semakStatusMap.P2, 'Penilaian 2 (Jun–Okt)');
+
+    document.getElementById('statusP1Bar').innerHTML = buildBar(semakStatusMap.P1, 'Penilaian 1 (Jan–Mei)', 'P1');
+    document.getElementById('statusP2Bar').innerHTML = buildBar(semakStatusMap.P2, 'Penilaian 2 (Jun–Okt)', 'P2');
+}
+
+// Guru hantar semula rekod selepas baiki
+async function hantarSemulaRekod(penilaian) {
+    const semakDoc = semakStatusMap[penilaian];
+    if (!semakDoc || !semakDoc.id) { showToast('Rekod semakan tidak dijumpai', 'error'); return; }
+
+    // Modal kecil — tanya nota optional
+    const nota = prompt('Nota kepada penyemak (optional — boleh kosongkan):') ;
+    if (nota === null) return; // user tekan Cancel
+
+    showLoading('Menghantar semula...');
+    try {
+        const sejarah = semakDoc.sejarah_semakan || [];
+        await db.collection('semakan_penilaian').doc(semakDoc.id).update({
+            status_semak:     'MENUNGGU_SEMAKAN',
+            nota_guru:        nota.trim(),
+            tarikh_hantar_semula: getTimestamp(),
+            updatedAt:        getTimestamp()
+        });
+
+        // Kemaskini local state
+        semakStatusMap[penilaian].status_semak = 'MENUNGGU_SEMAKAN';
+        semakStatusMap[penilaian].nota_guru = nota.trim();
+
+        hideLoading();
+        showToast('✅ Rekod berjaya dihantar semula kepada penyemak!', 'success');
+        updateStatusBar();
+    } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+        hideLoading();
+    }
 }
 
 function renderSenarai() {
@@ -962,6 +1040,23 @@ async function janaPDF() {
         showToast('Error: ' + e.message, 'error');
         hideLoading();
     }
+}
+
+// ── TANDA DROPDOWN SUBJEK ─────────────────────────────────────────────────────
+// Tanda ikut status semakan P1 dan P2 untuk subjek tersebut
+function getSubjekTanda(p1Status, p2Status) {
+    const tanda = function(status) {
+        if (status === 'PERLU_BAIKI')      return '⚠️';
+        if (status === 'MENUNGGU_SEMAKAN') return '🔄';
+        if (status === 'DISEMAK')          return '✅';
+        return '';
+    };
+    const t1 = tanda(p1Status);
+    const t2 = tanda(p2Status);
+    if (t1 && t2) return t1 + ' P1 ' + t2 + ' P2';
+    if (t1) return t1 + ' P1';
+    if (t2) return t2 + ' P2';
+    return '';
 }
 
 // ── MODAL HELPERS ─────────────────────────────────────────────────────────────

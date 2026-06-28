@@ -115,8 +115,32 @@
             transition: all 0.3s;
         }
         .semak-card:hover { box-shadow: 0 6px 25px rgba(0,0,0,0.12); transform: translateX(3px); }
-        .semak-card.belum { border-color: #ef4444; }
-        .semak-card.sudah { border-color: #22c55e; }
+        .semak-card.belum    { border-color: #ef4444; }
+        .semak-card.menunggu { border-color: #f59e0b; background: #fffbeb; }
+        .semak-card.sudah    { border-color: #22c55e; }
+
+        /* STATUS BADGE pada kad */
+        .status-badge {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .status-badge.belum    { background: #fee2e2; color: #dc2626; }
+        .status-badge.menunggu { background: #fef3c7; color: #92400e; }
+
+        /* CATATAN BALIK dari penyemak */
+        .catatan-balik-box {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #92400e;
+        }
         .semak-card-info h3 { font-size: 18px; color: var(--dark); margin-bottom: 6px; }
         .semak-card-info p { font-size: 13px; color: var(--text-light); margin: 3px 0; }
         .semak-card-actions { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -300,8 +324,8 @@
                 <div class="summary-semak belum active" id="cardBelum" onclick="showTab('belum')">
                     <div style="font-size:28px;">🔴</div>
                     <div class="big-count" id="countBelum">0</div>
-                    <div class="label">BELUM DISEMAK</div>
-                    <div class="hint">Klik untuk lihat senarai</div>
+                    <div class="label">BELUM / PERLU TINDAKAN</div>
+                    <div id="counterBelumDetail" class="hint">Klik untuk lihat senarai</div>
                 </div>
                 <div class="summary-semak sudah" id="cardSudah" onclick="showTab('sudah')">
                     <div style="font-size:28px;">✅</div>
@@ -331,7 +355,7 @@
 
             <!-- Tab: Belum -->
             <div id="tabBelum">
-                <h3 style="color:#dc2626;margin-bottom:18px;font-size:18px;">🔴 BELUM DISEMAK</h3>
+                <h3 style="color:#dc2626;margin-bottom:18px;font-size:18px;">🔴 BELUM DISEMAK &amp; PERLU TINDAKAN</h3>
                 <div id="listBelum">
                     <div class="empty-state"><div class="icon">⏳</div><p>Pilih Tahun Rekod untuk melihat senarai</p></div>
                 </div>
@@ -360,6 +384,9 @@
 
                 <!-- Info -->
                 <div id="semakInfoHeader" style="background:var(--light);padding:15px;border-radius:10px;margin-bottom:15px;"></div>
+
+                <!-- Sejarah Semakan -->
+                <div id="sejarahSemakanBox" style="display:none;"></div>
 
                 <!-- Topik Breakdown -->
                 <div id="topikBreakdownBox" style="display:none;margin-bottom:18px;"></div>
@@ -390,7 +417,7 @@
 
                 <!-- Semak Form (belum disemak) -->
                 <div id="semakForm" class="semak-form-box" style="display:none;">
-                    <h4>✅ TANDAKAN SUDAH DISEMAK</h4>
+                    <h4 id="semakFormTitle">✅ TANDAKAN SUDAH DISEMAK</h4>
                     <div class="form-group">
                         <label style="font-weight:700;font-size:15px;">Nama Pentadbir: *</label>
                         <input type="text" id="inputDisemakOleh" class="form-control"
@@ -409,6 +436,7 @@
                     <h4 style="color:#15803d;margin-bottom:10px;">✅ Rekod Ini Telah Disemak</h4>
                     <p>👤 <strong>Disemak oleh:</strong> <span id="infoDisemakOleh"></span></p>
                     <p>📅 <strong>Tarikh semak:</strong> <span id="infoTarikhSemak"></span></p>
+                    <p>🔁 <strong>Pusingan:</strong> <span id="infoPusingan"></span></p>
                     <p>💬 <strong>Catatan:</strong> <span id="infoCatatanSemak"></span></p>
                 </div>
 
