@@ -12,26 +12,26 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         /* BESARKAN SEMUA — untuk penyemak umur 50+ */
-        html, body {
-            font-size: 17px !important;
-        }
-        body * {
-            font-size: inherit;
-        }
+        html { font-size: 20px !important; }
+        body { font-size: 20px !important; }
+
         .form-control {
-            font-size: 16px !important;
-            padding: 12px 14px !important;
+            font-size: 19px !important;
+            padding: 14px 16px !important;
             height: auto !important;
         }
         label {
-            font-size: 15px !important;
+            font-size: 18px !important;
             font-weight: 700 !important;
         }
-        h1 { font-size: 26px !important; }
-        h2 { font-size: 22px !important; }
-        h3 { font-size: 20px !important; }
-        h4 { font-size: 18px !important; }
-        p, td, th, li, span, div { font-size: 15px; }
+        h1 { font-size: 32px !important; }
+        h2 { font-size: 28px !important; }
+        h3 { font-size: 26px !important; }
+        h4 { font-size: 22px !important; }
+        p  { font-size: 19px !important; }
+        td, th { font-size: 18px !important; }
+        span, li { font-size: 18px !important; }
+        select, input, textarea { font-size: 19px !important; }
 
         /* LOGIN */
         .login-wrap {
@@ -49,11 +49,11 @@
             max-width: 420px;
             width: 100%;
         }
-        .login-icon { font-size: 80px; margin-bottom: 20px; }
-        .login-card h2 { font-size: 30px; color: var(--dark); margin-bottom: 8px; }
-        .login-card p { color: var(--text-light); margin-bottom: 30px; font-size: 17px; }
+        .login-icon { font-size: 90px; margin-bottom: 20px; }
+        .login-card h2 { font-size: 34px; color: var(--dark); margin-bottom: 8px; }
+        .login-card p { color: var(--text-light); margin-bottom: 30px; font-size: 20px !important; }
         .login-input {
-            font-size: 26px;
+            font-size: 30px;
             letter-spacing: 10px;
             text-align: center;
             padding: 18px;
@@ -98,13 +98,13 @@
         .summary-semak.belum.active { background: #fee2e2; border-color: #ef4444; box-shadow: 0 4px 20px rgba(239,68,68,0.2); }
         .summary-semak.sudah { background: #f0fdf4; border-color: #86efac; }
         .summary-semak.sudah.active { background: #dcfce7; border-color: #22c55e; box-shadow: 0 4px 20px rgba(34,197,94,0.2); }
-        .summary-semak .big-count { font-size: 64px; font-weight: 800; line-height: 1; margin: 10px 0; }
+        .summary-semak .big-count { font-size: 80px !important; font-weight: 800; line-height: 1; margin: 12px 0; }
         .summary-semak.belum .big-count { color: #ef4444; }
         .summary-semak.sudah .big-count { color: #16a34a; }
-        .summary-semak .label { font-size: 18px !important; font-weight: 700; }
+        .summary-semak .label { font-size: 22px !important; font-weight: 700; }
         .summary-semak.belum .label { color: #dc2626; }
         .summary-semak.sudah .label { color: #15803d; }
-        .summary-semak .hint { font-size: 14px !important; margin-top: 6px; opacity: 0.8; }
+        .summary-semak .hint { font-size: 16px !important; margin-top: 8px; opacity: 0.8; }
 
         /* FILTER BAR */
         .filter-bar {
@@ -163,14 +163,14 @@
             font-size: 15px !important;
             color: #92400e;
         }
-        .semak-card-info h3 { font-size: 22px !important; color: var(--dark); margin-bottom: 8px; font-weight: 700; }
-        .semak-card-info p  { font-size: 16px !important; color: var(--text-light); margin: 6px 0; line-height: 1.5; }
-        .semak-card-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+        .semak-card-info h3 { font-size: 26px !important; color: var(--dark); margin-bottom: 10px; font-weight: 700; }
+        .semak-card-info p  { font-size: 19px !important; color: var(--text-light); margin: 8px 0; line-height: 1.6; }
+        .semak-card-actions { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
         .btn-card {
-            padding: 16px 28px;
-            border-radius: 12px;
+            padding: 18px 34px;
+            border-radius: 14px;
             border: none;
-            font-size: 16px !important;
+            font-size: 18px !important;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.3s;
@@ -208,13 +208,16 @@
             display: flex; align-items: center; justify-content: center;
             font-size: 12px; font-weight: 700; flex-shrink: 0;
         }
-        .murid-nama { flex: 1; font-size: 16px !important; }
-        .murid-rekod { font-size: 13px !important; color: #888; white-space: nowrap; }
+        .murid-nama { flex: 1; font-size: 18px !important; }
+        .murid-rekod { font-size: 15px !important; color: #888; white-space: nowrap; }
+        .murid-bil { width: 34px; height: 34px; font-size: 15px !important; }
         .tp-badge {
-            padding: 6px 14px; border-radius: 20px;
-            font-size: 15px !important; font-weight: 700;
-            min-width: 55px; text-align: center;
+            padding: 8px 16px; border-radius: 20px;
+            font-size: 17px !important; font-weight: 700;
+            min-width: 60px; text-align: center;
         }
+        .pg-badge { font-size: 15px !important; padding: 5px 12px; }
+        .tp-stars { font-size: 17px !important; }
         .tp-6,.tp-5 { background: #dcfce7; color: #15803d; }
         .tp-4 { background: #fef9c3; color: #854d0e; }
         .tp-3 { background: #ffedd5; color: #9a3412; }
