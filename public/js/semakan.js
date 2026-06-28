@@ -128,13 +128,11 @@ async function loadDashboard() {
         var startDate = penilaian === 'P1' ? tahunRekod + '-01-01' : tahunRekod + '-06-01';
         var endDate   = penilaian === 'P1' ? tahunRekod + '-05-31' : tahunRekod + '-10-31';
 
-        // Step 1 & 3 serentak — jimat masa
+        // Step 1 & 2 serentak
         var results = await Promise.all([
             firestoreRetry(function() {
                 return db.collection('rekod_pbd')
                     .where('tahun_rekod', '==', tahunRekod)
-                    .where('tarikh_string', '>=', startDate)
-                    .where('tarikh_string', '<=', endDate)
                     .get();
             }),
             firestoreRetry(function() {
@@ -148,11 +146,12 @@ async function loadDashboard() {
         var rekodSnap = results[0];
         var semakSnap = results[1];
 
-        // Step 2: Group by kelas||subjek — ambil nama guru
+        // Group by kelas||subjek — tapis tarikh dalam JS
         var comboMap = {};
         rekodSnap.forEach(function(doc) {
             var d = doc.data();
             if (!d.tarikh_string) return;
+            if (d.tarikh_string < startDate || d.tarikh_string > endDate) return;
             var key = d.kelas + '||' + d.subjek;
             if (!comboMap[key]) {
                 comboMap[key] = {
