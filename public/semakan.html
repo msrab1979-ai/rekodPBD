@@ -250,6 +250,40 @@
         }
         .already-semak-box p { margin: 5px 0; }
 
+        /* KAD MINI — tab semula */
+        .semak-card-mini {
+            background: white;
+            border-radius: 14px;
+            padding: 18px 20px;
+            margin-bottom: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            border-left: 6px solid;
+        }
+        .semak-card-mini.perlu-baiki { border-color: #f59e0b; background: #fffbeb; }
+        .semak-card-mini.menunggu    { border-color: #38bdf8; background: #f0f9ff; }
+        .btn-mini {
+            padding: 12px 18px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .btn-mini:hover { transform: translateY(-2px); opacity: 0.9; }
+        .btn-orange { background: linear-gradient(135deg,#f59e0b,#d97706); color: white; }
+        .btn-blue   { background: linear-gradient(135deg,#38bdf8,#0284c7); color: white; }
+
+        /* GRID SEMULA responsive */
+        @media (max-width: 768px) {
+            #gridSemula { grid-template-columns: 1fr !important; }
+        }
+
         /* EMPTY STATE */
         .empty-state { text-align: center; padding: 50px 20px; color: var(--text-light); }
         .empty-state .icon { font-size: 60px; margin-bottom: 15px; }
@@ -346,12 +380,20 @@
             </div>
 
             <!-- Summary Cards -->
-            <div class="summary-bar">
+            <div class="summary-bar" style="grid-template-columns:1fr 1fr 1fr;">
                 <div class="summary-semak belum active" id="cardBelum" onclick="showTab('belum')">
                     <div style="font-size:28px;">🔴</div>
                     <div class="big-count" id="countBelum">0</div>
-                    <div class="label">BELUM / PERLU TINDAKAN</div>
+                    <div class="label">BELUM DISEMAK</div>
                     <div id="counterBelumDetail" class="hint">Klik untuk lihat senarai</div>
+                </div>
+                <div class="summary-semak" id="cardSemula"
+                    style="background:#fff7ed;border-color:#f59e0b;cursor:pointer;border:3px solid #f59e0b;"
+                    onclick="showTab('semula')">
+                    <div style="font-size:28px;">🔄</div>
+                    <div class="big-count" id="countSemula" style="color:#d97706;">0</div>
+                    <div class="label" style="color:#b45309;">PERLU BAIKI / DIBAIKI</div>
+                    <div class="hint" style="color:#92400e;">Klik untuk semak semula</div>
                 </div>
                 <div class="summary-semak sudah" id="cardSudah" onclick="showTab('sudah')">
                     <div style="font-size:28px;">✅</div>
@@ -384,6 +426,26 @@
                 <h3 style="color:#dc2626;margin-bottom:18px;font-size:18px;">🔴 BELUM DISEMAK &amp; PERLU TINDAKAN</h3>
                 <div id="listBelum">
                     <div class="empty-state"><div class="icon">⏳</div><p>Pilih Tahun Rekod untuk melihat senarai</p></div>
+                </div>
+            </div>
+
+            <!-- Tab: Semula (PERLU BAIKI + MENUNGGU) -->
+            <div id="tabSemula" style="display:none;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" id="gridSemula">
+                    <!-- Kiri: Perlu Baiki -->
+                    <div>
+                        <h3 style="color:#b45309;margin-bottom:14px;font-size:18px;">⚠️ PERLU DIPERBAIKI</h3>
+                        <div id="listPerluBaiki">
+                            <div class="empty-state"><div class="icon">⚠️</div><p>Tiada rekod perlu dibaiki</p></div>
+                        </div>
+                    </div>
+                    <!-- Kanan: Telah Dibaiki / Menunggu -->
+                    <div>
+                        <h3 style="color:#0369a1;margin-bottom:14px;font-size:18px;">🔄 TELAH DIBAIKI — MENUNGGU SEMAKAN</h3>
+                        <div id="listMenunggu">
+                            <div class="empty-state"><div class="icon">🔄</div><p>Tiada rekod menunggu semakan</p></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

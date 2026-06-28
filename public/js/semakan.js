@@ -6,8 +6,10 @@
 
 let currentSemakData = null;
 let currentTab = 'belum';
-let allBelumList = [];      // BELUM_DISEMAK + MENUNGGU_SEMAKAN
-let allSudahList = [];      // DISEMAK
+let allBelumList = [];       // BELUM_DISEMAK
+let allPerluBaikiList = [];  // PERLU_BAIKI
+let allMenungguList = [];    // MENUNGGU_SEMAKAN
+let allSudahList = [];       // DISEMAK
 let currentMuridList = [];
 let resetTarget = null;
 let namaSekolah = 'SK Sultan Ismail';
@@ -176,8 +178,10 @@ async function loadDashboard() {
             semakMap[d.kelas + '||' + d.subjek] = { id: doc.id, ...d };
         });
 
-        // Step 4: Build belum/sudah lists
+        // Step 4: Build lists ikut status
         allBelumList = [];
+        allPerluBaikiList = [];
+        allMenungguList = [];
         allSudahList = [];
 
         Object.keys(comboMap).forEach(function(key) {
@@ -202,12 +206,10 @@ async function loadDashboard() {
                 sejarah_semakan:  semak ? (semak.sejarah_semakan || []) : []
             };
 
-            if (status === 'DISEMAK') {
-                allSudahList.push(item);
-            } else {
-                // BELUM_DISEMAK dan MENUNGGU_SEMAKAN masuk senarai belum
-                allBelumList.push(item);
-            }
+            if      (status === 'DISEMAK')           allSudahList.push(item);
+            else if (status === 'PERLU_BAIKI')        allPerluBaikiList.push(item);
+            else if (status === 'MENUNGGU_SEMAKAN')   allMenungguList.push(item);
+            else                                      allBelumList.push(item);
         });
 
         // Sort A-Z
@@ -232,7 +234,7 @@ async function loadDashboard() {
 // CARD FILTERS
 // ============================================================================
 function populateCardFilters() {
-    var allItems = allBelumList.concat(allSudahList);
+    var allItems = allBelumList.concat(allPerluBaikiList).concat(allMenungguList).concat(allSudahList);
     var subjekSet  = new Set();
     var darjahSet  = new Set();
     var darjahOrder = ['SATU','DUA','TIGA','EMPAT','LIMA','ENAM'];
@@ -260,34 +262,30 @@ function applyCardFilter() {
     var subjekFilter = (document.getElementById('filterKadSubjek') || {}).value || '';
     var darjahFilter = (document.getElementById('filterKadDarjah') || {}).value || '';
 
-    var filteredBelum = allBelumList.filter(function(item) {
-        if (subjekFilter && item.subjek !== subjekFilter) return false;
-        if (darjahFilter && item.tahun  !== darjahFilter) return false;
-        return true;
-    });
-    var filteredSudah = allSudahList.filter(function(item) {
-        if (subjekFilter && item.subjek !== subjekFilter) return false;
-        if (darjahFilter && item.tahun  !== darjahFilter) return false;
-        return true;
-    });
+    function applyFilter(list) {
+        return list.filter(function(item) {
+            if (subjekFilter && item.subjek !== subjekFilter) return false;
+            if (darjahFilter && item.tahun  !== darjahFilter) return false;
+            return true;
+        });
+    }
 
-    // Kira: berapa BELUM vs MENUNGGU
-    var bilBelum    = filteredBelum.filter(function(i) { return i.status === 'BELUM_DISEMAK'; }).length;
-    var bilMenunggu = filteredBelum.filter(function(i) { return i.status === 'MENUNGGU_SEMAKAN'; }).length;
+    var filteredBelum      = applyFilter(allBelumList);
+    var filteredPerluBaiki = applyFilter(allPerluBaikiList);
+    var filteredMenunggu   = applyFilter(allMenungguList);
+    var filteredSudah      = applyFilter(allSudahList);
+    var totalSemula        = filteredPerluBaiki.length + filteredMenunggu.length;
 
     // Update counter
+    document.getElementById('countBelum').textContent  = filteredBelum.length;
+    document.getElementById('countSemula').textContent = totalSemula;
+    document.getElementById('countSudah').textContent  = filteredSudah.length;
+
     var counterEl = document.getElementById('counterBelumDetail');
-    if (counterEl) {
-        if (bilMenunggu > 0) {
-            counterEl.innerHTML = bilBelum + ' belum &nbsp;•&nbsp; <span style="color:#f59e0b;font-weight:800;">' + bilMenunggu + ' menunggu</span>';
-        } else {
-            counterEl.textContent = filteredBelum.length + ' rekod';
-        }
-    }
-    document.getElementById('countBelum').textContent = filteredBelum.length;
-    document.getElementById('countSudah').textContent = filteredSudah.length;
+    if (counterEl) counterEl.textContent = filteredBelum.length + ' rekod';
 
     renderBelumList(filteredBelum);
+    renderSemakanSemulaLists(filteredPerluBaiki, filteredMenunggu);
     renderSudahList(filteredSudah);
 }
 
@@ -296,10 +294,65 @@ function applyCardFilter() {
 // ============================================================================
 function showTab(tab) {
     currentTab = tab;
-    document.getElementById('tabBelum').style.display = tab === 'belum' ? 'block' : 'none';
-    document.getElementById('tabSudah').style.display = tab === 'sudah' ? 'block' : 'none';
-    document.getElementById('cardBelum').className = 'summary-semak belum' + (tab === 'belum' ? ' active' : '');
-    document.getElementById('cardSudah').className = 'summary-semak sudah' + (tab === 'sudah' ? ' active' : '');
+    document.getElementById('tabBelum').style.display   = tab === 'belum'  ? 'block' : 'none';
+    document.getElementById('tabSemula').style.display  = tab === 'semula' ? 'block' : 'none';
+    document.getElementById('tabSudah').style.display   = tab === 'sudah'  ? 'block' : 'none';
+
+    document.getElementById('cardBelum').className  = 'summary-semak belum'  + (tab === 'belum'  ? ' active' : '');
+    document.getElementById('cardSudah').className  = 'summary-semak sudah'  + (tab === 'sudah'  ? ' active' : '');
+
+    var cardSemula = document.getElementById('cardSemula');
+    cardSemula.style.background   = tab === 'semula' ? '#fef3c7' : '#fff7ed';
+    cardSemula.style.borderColor  = '#f59e0b';
+    cardSemula.style.boxShadow    = tab === 'semula' ? '0 4px 20px rgba(245,158,11,0.3)' : '';
+}
+
+// ============================================================================
+// RENDER TAB SEMULA — 2 kolum: Perlu Baiki | Menunggu Semakan
+// ============================================================================
+function renderSemakanSemulaLists(perluBaiki, menunggu) {
+    // Kiri — Perlu Baiki
+    var containerPB = document.getElementById('listPerluBaiki');
+    if (perluBaiki.length === 0) {
+        containerPB.innerHTML = '<div class="empty-state"><div class="icon">✅</div><p>Tiada rekod perlu dibaiki</p></div>';
+    } else {
+        containerPB.innerHTML = perluBaiki.map(function(item) {
+            var realIdx = allPerluBaikiList.indexOf(item);
+            var bilSemakan = item.sejarah_semakan ? item.sejarah_semakan.length : 0;
+            var lastCatatan = bilSemakan > 0 ? item.sejarah_semakan[bilSemakan-1].catatan : '';
+            return '<div class="semak-card-mini perlu-baiki">' +
+                '<div>' +
+                '<div style="font-weight:800;font-size:17px;margin-bottom:4px;">📚 ' + item.subjek + '</div>' +
+                '<div style="font-size:14px;color:#555;">🏫 ' + item.kelas + '</div>' +
+                (item.namaGuru ? '<div style="font-size:14px;color:#555;">👤 ' + item.namaGuru + '</div>' : '') +
+                (lastCatatan ? '<div style="font-size:13px;color:#92400e;margin-top:6px;font-style:italic;">💬 ' + lastCatatan + '</div>' : '') +
+                '<div style="font-size:12px;color:#aaa;margin-top:4px;">Semakan ke-' + bilSemakan + '</div>' +
+                '</div>' +
+                '<button class="btn-mini btn-orange" onclick="openSemakModal(' + realIdx + ',\'perlubaiki\')">🔄 SEMAK SEMULA</button>' +
+                '</div>';
+        }).join('');
+    }
+
+    // Kanan — Menunggu
+    var containerMN = document.getElementById('listMenunggu');
+    if (menunggu.length === 0) {
+        containerMN.innerHTML = '<div class="empty-state"><div class="icon">🔄</div><p>Tiada rekod menunggu semakan</p></div>';
+    } else {
+        containerMN.innerHTML = menunggu.map(function(item) {
+            var realIdx = allMenungguList.indexOf(item);
+            var bilSemakan = item.sejarah_semakan ? item.sejarah_semakan.length : 0;
+            return '<div class="semak-card-mini menunggu">' +
+                '<div>' +
+                '<div style="font-weight:800;font-size:17px;margin-bottom:4px;">📚 ' + item.subjek + '</div>' +
+                '<div style="font-size:14px;color:#555;">🏫 ' + item.kelas + '</div>' +
+                (item.namaGuru ? '<div style="font-size:14px;color:#555;">👤 ' + item.namaGuru + '</div>' : '') +
+                '<div style="font-size:13px;color:#0369a1;margin-top:4px;">✉️ Guru dah hantar semula</div>' +
+                '<div style="font-size:12px;color:#aaa;margin-top:4px;">Semakan ke-' + (bilSemakan + 1) + '</div>' +
+                '</div>' +
+                '<button class="btn-mini btn-blue" onclick="openSemakModal(' + realIdx + ',\'menunggu\')">✅ SEMAK SEKARANG</button>' +
+                '</div>';
+        }).join('');
+    }
 }
 
 // ============================================================================
@@ -425,7 +478,10 @@ function renderSudahList(list) {
 // MODAL SEMAK — OPEN
 // ============================================================================
 async function openSemakModal(idx, listType) {
-    var item = listType === 'belum' ? allBelumList[idx] : allSudahList[idx];
+    var item = listType === 'belum'      ? allBelumList[idx]
+             : listType === 'sudah'      ? allSudahList[idx]
+             : listType === 'perlubaiki' ? allPerluBaikiList[idx]
+             :                            allMenungguList[idx];
     currentSemakData = Object.assign({}, item, { listType: listType, idx: idx });
 
     var bilSemakan = item.sejarah_semakan ? item.sejarah_semakan.length : 0;
@@ -456,7 +512,7 @@ async function openSemakModal(idx, listType) {
     document.getElementById('topikBreakdownBox').style.display = 'none';
     document.getElementById('topikBreakdownBox').innerHTML = '';
 
-    var isBelum = (listType === 'belum');
+    var isBelum = (listType !== 'sudah');
     var isMenunggu = item.status === 'MENUNGGU_SEMAKAN';
 
     // Sejarah semakan
