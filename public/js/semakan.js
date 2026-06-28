@@ -97,20 +97,10 @@ async function initDashboard() {
         sel.add(new Option(currentYear, currentYear, true, true));
         document.getElementById('filterPenilaian').value = penilaian;
 
-        // Load config & rekod serentak
-        var results = await Promise.all([
-            firestoreRetry(function() {
-                return db.collection('config').doc('system_settings').get();
-            }),
-            firestoreRetry(function() {
-                return db.collection('rekod_pbd')
-                    .where('tahun_rekod', '==', currentYear)
-                    .select('tahun_rekod')
-                    .limit(1).get();
-            })
-        ]);
-
-        var configDoc = results[0];
+        // Load config sahaja
+        var configDoc = await firestoreRetry(function() {
+            return db.collection('config').doc('system_settings').get();
+        });
         if (configDoc.exists && configDoc.data().namaSekolah) {
             namaSekolah = configDoc.data().namaSekolah;
         }
