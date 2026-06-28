@@ -148,6 +148,14 @@ async function loadDashboard() {
         var rekodSnap = results[0];
         var allSemakSnap = results[1];
 
+        // DEBUG — tengok semua dokumen semakan
+        console.log('🔍 SEMUA semakan_penilaian untuk tahun', tahunRekod, ':');
+        allSemakSnap.forEach(function(doc) {
+            var d = doc.data();
+            console.log('  DOC:', doc.id, '| status:', d.status_semak, '| penilaian:', d.penilaian, '| kelas:', d.kelas, '| subjek:', d.subjek, '| tahun_rekod:', d.tahun_rekod);
+        });
+        console.log('  JUMLAH:', allSemakSnap.size, 'dokumen');
+
         // Pisah: semakSnap = penilaian semasa, semakActiveSnap = semua status aktif
         var semakSnap = { forEach: function(fn) {
             allSemakSnap.forEach(function(doc) {
