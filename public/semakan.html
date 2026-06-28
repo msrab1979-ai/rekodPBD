@@ -476,6 +476,31 @@
                 <!-- Sejarah Semakan -->
                 <div id="sejarahSemakanBox" style="display:none;"></div>
 
+                <!-- Semak Form (belum disemak) — di atas murid list -->
+                <div id="semakForm" class="semak-form-box" style="display:none;">
+                    <h4 id="semakFormTitle">✅ TANDAKAN SUDAH DISEMAK</h4>
+                    <div class="form-group">
+                        <label style="font-weight:700;font-size:15px;">Nama Pentadbir: *</label>
+                        <input type="text" id="inputDisemakOleh" class="form-control"
+                            placeholder="Contoh: CIK AMINAH BINTI HASSAN"
+                            style="font-size:16px;padding:14px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight:700;">Catatan: <span style="font-weight:400;color:#888;">(tidak wajib)</span></label>
+                        <textarea id="inputCatatanSemak" class="form-control" rows="2"
+                            placeholder="Contoh: Rekod lengkap dan kemas" style="font-size:15px;padding:12px;"></textarea>
+                    </div>
+                </div>
+
+                <!-- Already Semak Info -->
+                <div id="disemakInfo" class="already-semak-box" style="display:none;">
+                    <h4 style="color:#15803d;margin-bottom:10px;">✅ Rekod Ini Telah Disemak</h4>
+                    <p>👤 <strong>Disemak oleh:</strong> <span id="infoDisemakOleh"></span></p>
+                    <p>📅 <strong>Tarikh semak:</strong> <span id="infoTarikhSemak"></span></p>
+                    <p>🔁 <strong>Pusingan:</strong> <span id="infoPusingan"></span></p>
+                    <p>💬 <strong>Catatan:</strong> <span id="infoCatatanSemak"></span></p>
+                </div>
+
                 <!-- Topik Breakdown -->
                 <div id="topikBreakdownBox" style="display:none;margin-bottom:18px;"></div>
 
@@ -493,7 +518,7 @@
 
                 <!-- Murid List -->
                 <div id="muridSemakList"
-                    style="max-height:420px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:14px;"></div>
+                    style="max-height:350px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:14px;"></div>
 
                 <!-- Kelas Avg -->
                 <div id="kelasAvgBox"
@@ -501,31 +526,6 @@
                     <div style="font-size:13px;opacity:0.85;">Purata Kelas</div>
                     <div id="kelasAvgValue" style="font-size:34px;font-weight:800;"></div>
                     <div id="kelasAvgLabel" style="font-size:13px;opacity:0.85;"></div>
-                </div>
-
-                <!-- Semak Form (belum disemak) -->
-                <div id="semakForm" class="semak-form-box" style="display:none;">
-                    <h4 id="semakFormTitle">✅ TANDAKAN SUDAH DISEMAK</h4>
-                    <div class="form-group">
-                        <label style="font-weight:700;font-size:15px;">Nama Pentadbir: *</label>
-                        <input type="text" id="inputDisemakOleh" class="form-control"
-                            placeholder="Contoh: CIK AMINAH BINTI HASSAN"
-                            style="font-size:15px;text-transform:uppercase;padding:12px;">
-                    </div>
-                    <div class="form-group">
-                        <label style="font-weight:700;">Catatan: <span style="font-weight:400;color:#888;">(tidak wajib)</span></label>
-                        <textarea id="inputCatatanSemak" class="form-control" rows="2"
-                            placeholder="Contoh: Rekod lengkap dan kemas"></textarea>
-                    </div>
-                </div>
-
-                <!-- Already Semak Info -->
-                <div id="disemakInfo" class="already-semak-box" style="display:none;">
-                    <h4 style="color:#15803d;margin-bottom:10px;">✅ Rekod Ini Telah Disemak</h4>
-                    <p>👤 <strong>Disemak oleh:</strong> <span id="infoDisemakOleh"></span></p>
-                    <p>📅 <strong>Tarikh semak:</strong> <span id="infoTarikhSemak"></span></p>
-                    <p>🔁 <strong>Pusingan:</strong> <span id="infoPusingan"></span></p>
-                    <p>💬 <strong>Catatan:</strong> <span id="infoCatatanSemak"></span></p>
                 </div>
 
             </div>

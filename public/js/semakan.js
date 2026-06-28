@@ -130,8 +130,7 @@ async function loadDashboard() {
         var startDate = penilaian === 'P1' ? tahunRekod + '-01-01' : tahunRekod + '-06-01';
         var endDate   = penilaian === 'P1' ? tahunRekod + '-05-31' : tahunRekod + '-10-31';
 
-        // Step 1 & 2 serentak
-        // semakSnap: ambil SEMUA penilaian untuk tahun ini — supaya PERLU_BAIKI/MENUNGGU tidak terlepas
+        // Query serentak — rekod_pbd satu where sahaja, tapis tarikh dalam JS
         var results = await Promise.all([
             firestoreRetry(function() {
                 return db.collection('rekod_pbd')
@@ -145,12 +144,12 @@ async function loadDashboard() {
             })
         ]);
 
-        var rekodSnap = results[0];
+        var rekodSnap    = results[0];
         var allSemakSnap = results[1];
 
-        // Pisah manually dari allSemakSnap
-        var semakDocs = [];          // penilaian semasa sahaja (untuk comboMap)
-        var semakActiveDocs = [];    // PERLU_BAIKI / MENUNGGU dari semua penilaian
+        // Pisah semakan ikut keperluan
+        var semakDocs = [];       // penilaian semasa sahaja
+        var semakActiveDocs = []; // PERLU_BAIKI / MENUNGGU dari semua penilaian
 
         allSemakSnap.forEach(function(doc) {
             var d = doc.data();
@@ -170,17 +169,15 @@ async function loadDashboard() {
             var key = d.kelas + '||' + d.subjek;
             if (!comboMap[key]) {
                 comboMap[key] = {
-                    kelas: d.kelas,
-                    subjek: d.subjek,
-                    tahun: d.tahun,
-                    namaGuru: d.nama_guru || '',
+                    kelas:       d.kelas,
+                    subjek:      d.subjek,
+                    tahun:       d.tahun || '',
+                    namaGuru:    d.nama_guru || '',
                     jumlahRekod: 0,
-                    muridSet: new Set()
+                    muridSet:    new Set()
                 };
             }
-            if (!comboMap[key].namaGuru && d.nama_guru) {
-                comboMap[key].namaGuru = d.nama_guru;
-            }
+            if (!comboMap[key].namaGuru && d.nama_guru) comboMap[key].namaGuru = d.nama_guru;
             comboMap[key].jumlahRekod++;
             (d.murid || []).forEach(function(m) { comboMap[key].muridSet.add(m.noKp); });
         });
@@ -597,6 +594,17 @@ async function openSemakModal(idx, listType) {
     }
 
     document.getElementById('modalSemak').classList.add('open');
+
+    // Jika form semakan nampak, scroll ke atas modal dan fokus input
+    if (isBelum) {
+        var modalBody = document.querySelector('#modalSemak .modal-body');
+        if (modalBody) modalBody.scrollTop = 0;
+        setTimeout(function() {
+            var inp = document.getElementById('inputDisemakOleh');
+            if (inp) inp.focus();
+        }, 150);
+    }
+
     await loadMuridData(item);
 }
 
@@ -831,12 +839,15 @@ function closeSemakModal() {
 async function simpanSemakan(keputusan) {
     if (!currentSemakData) return;
 
-    var disemakOleh = document.getElementById('inputDisemakOleh').value.trim().toUpperCase();
+    var inputEl = document.getElementById('inputDisemakOleh');
+    var disemakOleh = (inputEl ? inputEl.value : '').trim().toUpperCase();
     var catatan     = document.getElementById('inputCatatanSemak').value.trim();
+
+    console.log('[simpanSemakan] disemakOleh="' + disemakOleh + '" keputusan=' + keputusan);
 
     if (!disemakOleh) {
         showToast('⚠️ Sila masukkan nama pentadbir', 'warning');
-        document.getElementById('inputDisemakOleh').focus();
+        if (inputEl) { inputEl.focus(); inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
         return;
     }
 

@@ -690,8 +690,14 @@ async function hantarSemulaRekod(penilaian) {
     const semakDoc = semakStatusMap[penilaian];
     if (!semakDoc || !semakDoc.id) { showToast('Rekod semakan tidak dijumpai', 'error'); return; }
 
+    // Semak — jangan hantar semula kalau dah dalam MENUNGGU_SEMAKAN
+    if (semakDoc.status_semak === 'MENUNGGU_SEMAKAN') {
+        showToast('⚠️ Rekod sudah dihantar semula. Sila tunggu keputusan penyemak.', 'warning');
+        return;
+    }
+
     // Modal kecil — tanya nota optional
-    const nota = prompt('Nota kepada penyemak (optional — boleh kosongkan):') ;
+    const nota = prompt('Nota kepada penyemak (optional — boleh kosongkan):');
     if (nota === null) return; // user tekan Cancel
 
     showLoading('Menghantar semula...');
@@ -1055,7 +1061,7 @@ async function renderNotiSemakan(kelas, subjek, tahunRekod) {
     if (!kelas || !subjek) return;
 
     try {
-        // Ambil semua rekod untuk kelas+subjek
+        // Query semakan tanpa filter kelas — tapis dalam JS untuk handle format kelas berbeza
         const [rekodSnap, semakSnap] = await Promise.all([
             firestoreRetry(() =>
                 db.collection('rekod_pbd')
@@ -1065,20 +1071,29 @@ async function renderNotiSemakan(kelas, subjek, tahunRekod) {
                     .get()),
             firestoreRetry(() =>
                 db.collection('semakan_penilaian')
-                    .where('kelas', '==', kelas)
                     .where('subjek', '==', subjek)
                     .where('tahun_rekod', '==', tahunRekod)
                     .get())
         ]);
 
+        // Normalkan kelas untuk perbandingan — buang perbezaan format (nombor vs perkataan)
+        const kelasNorm = kelas.trim().toUpperCase();
+        const kelasParts = kelasNorm.split(' ');
+        const kelasNama = kelasParts.length > 1 ? kelasParts.slice(1).join(' ') : kelasNorm;
+
         // Bina map semakan
+        // Tapis semakan — match kelas penuh ATAU kelas nama sahaja (handle format nombor vs perkataan)
         const semakMap = {};
         semakSnap.forEach(d => {
             const data = d.data();
-            semakMap[data.penilaian] = { id: d.id, ...data };
+            const dKelas = (data.kelas || '').trim().toUpperCase();
+            const dKelasNama = dKelas.includes(' ') ? dKelas.split(' ').slice(1).join(' ') : dKelas;
+            if (dKelas === kelasNorm || dKelasNama === kelasNama) {
+                semakMap[data.penilaian] = { id: d.id, ...data };
+            }
         });
 
-        // Cari rekod yang PERLU_BAIKI sahaja
+        // Kira rekod PERLU_BAIKI dan status setiap penilaian
         const perluBaiki = [];
         rekodSnap.forEach(d => {
             const data = d.data();
@@ -1087,41 +1102,59 @@ async function renderNotiSemakan(kelas, subjek, tahunRekod) {
             if (!penilaian) return;
             const semak = semakMap[penilaian];
             if (semak && semak.status_semak === 'PERLU_BAIKI') {
-                // Elak duplikasi — satu entry per topik+subtopik
                 const key = data.topik + '|' + data.sub_topik;
                 if (!perluBaiki.find(x => x.key === key)) {
                     perluBaiki.push({
                         key,
-                        rekodId:    d.id,
-                        topik:      data.topik || '-',
-                        topikDesc:  data.topik_pembelajaran_main || '',
-                        subTopik:   data.sub_topik || '-',
-                        namaGuru:   data.nama_guru || '-',
+                        rekodId:   d.id,
+                        topik:     data.topik || '-',
+                        topikDesc: data.topik_pembelajaran_main || '',
+                        subTopik:  data.sub_topik || '-',
+                        namaGuru:  data.nama_guru || '-',
                         penilaian,
-                        catatan:    semak.catatan_semak || '',
-                        semakId:    semak.id,
-                        // simpan nilai untuk auto-isi form
+                        catatan:   semak.catatan_semak || '',
+                        semakId:   semak.id,
                         _data: data
                     });
                 }
             }
         });
 
+        // Bina blok status MENUNGGU / DISEMAK untuk penilaian lain
+        const statusBlocks = [];
+        ['P1', 'P2'].forEach(p => {
+            const semak = semakMap[p];
+            if (!semak) return;
+            const label = p === 'P1' ? 'Penilaian 1 (Jan–Mei)' : 'Penilaian 2 (Jun–Okt)';
+            if (semak.status_semak === 'MENUNGGU_SEMAKAN') {
+                const bil = semak.sejarah_semakan ? semak.sejarah_semakan.length + 1 : 1;
+                statusBlocks.push(
+                    '<div style="background:#f0f9ff;border:2px solid #7dd3fc;border-radius:10px;padding:12px 16px;margin-bottom:10px;">' +
+                    '<div style="font-weight:700;color:#0369a1;">🔄 ' + label + ' — MENUNGGU SEMAKAN BALIK</div>' +
+                    '<div style="font-size:13px;color:#555;margin-top:4px;">Rekod telah dihantar semula untuk Semakan ke-' + bil + '. Sila tunggu keputusan penyemak.</div>' +
+                    '</div>'
+                );
+            } else if (semak.status_semak === 'DISEMAK') {
+                const bil = semak.sejarah_semakan ? semak.sejarah_semakan.length : 1;
+                statusBlocks.push(
+                    '<div style="background:#f0fdf4;border:2px solid #86efac;border-radius:10px;padding:12px 16px;margin-bottom:10px;">' +
+                    '<div style="font-weight:700;color:#16a34a;">✅ ' + label + ' — DISEMAK & DISAHKAN</div>' +
+                    '<div style="font-size:13px;color:#555;margin-top:4px;">Selesai Semakan ke-' + bil + '. Oleh: ' + (semak.disemak_oleh || '-') + '</div>' +
+                    '</div>'
+                );
+            }
+        });
+
         if (perluBaiki.length === 0) {
-            // Semua OK — tunjuk mesej hijau ringkas
-            const adaSemak = Object.values(semakMap).some(s => s.status_semak === 'DISEMAK');
-            if (adaSemak) {
-                panel.innerHTML =
-                    '<div class="noti-ok">' +
-                    '<span style="font-size:16px;font-weight:700;color:#15803d;">✅ Semua rekod telah disemak & disahkan</span>' +
-                    '</div>';
+            if (statusBlocks.length > 0) {
+                panel.innerHTML = '<div style="padding:4px 0;">' + statusBlocks.join('') + '</div>';
                 panel.style.display = 'block';
             }
             return;
         }
 
         // Ada rekod perlu baiki — bina jadual
-        const rows = perluBaiki.map((r, i) =>
+        const rows = perluBaiki.map(r =>
             '<tr>' +
             '<td><strong>' + r.topik + '</strong>' +
                 (r.topikDesc ? '<div style="font-size:12px;color:#888;">' + r.topikDesc + '</div>' : '') +
@@ -1140,6 +1173,7 @@ async function renderNotiSemakan(kelas, subjek, tahunRekod) {
             : '';
 
         panel.innerHTML =
+            (statusBlocks.length ? '<div style="padding:4px 0 8px;">' + statusBlocks.join('') + '</div>' : '') +
             '<div class="noti-perlu-baiki">' +
             '<div style="font-size:17px;font-weight:800;color:#b45309;">⚠️ REKOD PERLU DIPERBAIKI — ' + perluBaiki.length + ' rekod</div>' +
             catatanHtml +
