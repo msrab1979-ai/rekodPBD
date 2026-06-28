@@ -133,7 +133,10 @@ async function onSubjekChange() {
     const tahun = document.getElementById('inputTahun').value;
     const subjekVal = document.getElementById('inputSubjek').value;
     resetDropdownFrom(['inputTopik','inputSubtopik']);
-    hideMuridSection(false); // kekal allMurid
+    hideMuridSection(false);
+    // Sorok panel notifikasi bila subjek ditukar
+    const panel = document.getElementById('notiSemakanPanel');
+    if (panel) { panel.style.display = 'none'; panel.innerHTML = ''; }
     if (!tahun || !subjekVal) return;
 
     // Filter murid mengikut subjek
@@ -163,9 +166,10 @@ async function onSubjekChange() {
         });
         sel.disabled = false;
 
-        // Kemaskini senarai rekod mengikut subjek
+        // Kemaskini senarai rekod & notifikasi semakan
         const kelas = document.getElementById('inputKelas').value;
         loadSenaraiRekod(tahun + ' ' + kelas, subjekName, tahunSemasa);
+        renderNotiSemakan(tahun + ' ' + kelas, subjekName, tahunSemasa);
     } catch (e) { showToast('Error: ' + e.message, 'error'); }
     hideLoading();
 }
@@ -1040,6 +1044,124 @@ async function janaPDF() {
         showToast('Error: ' + e.message, 'error');
         hideLoading();
     }
+}
+
+// ── NOTIFIKASI SEMAKAN — SENARAI PERLU DIPERBAIKI ────────────────────────────
+async function renderNotiSemakan(kelas, subjek, tahunRekod) {
+    const panel = document.getElementById('notiSemakanPanel');
+    if (!panel) return;
+    panel.style.display = 'none';
+    panel.innerHTML = '';
+    if (!kelas || !subjek) return;
+
+    try {
+        // Ambil semua rekod untuk kelas+subjek
+        const [rekodSnap, semakSnap] = await Promise.all([
+            firestoreRetry(() =>
+                db.collection('rekod_pbd')
+                    .where('kelas', '==', kelas)
+                    .where('subjek', '==', subjek)
+                    .where('tahun_rekod', '==', tahunRekod)
+                    .get()),
+            firestoreRetry(() =>
+                db.collection('semakan_penilaian')
+                    .where('kelas', '==', kelas)
+                    .where('subjek', '==', subjek)
+                    .where('tahun_rekod', '==', tahunRekod)
+                    .get())
+        ]);
+
+        // Bina map semakan
+        const semakMap = {};
+        semakSnap.forEach(d => {
+            const data = d.data();
+            semakMap[data.penilaian] = { id: d.id, ...data };
+        });
+
+        // Cari rekod yang PERLU_BAIKI sahaja
+        const perluBaiki = [];
+        rekodSnap.forEach(d => {
+            const data = d.data();
+            const bulan = data.tarikh_string ? parseInt(data.tarikh_string.substring(5,7)) : 0;
+            const penilaian = bulan >= 1 && bulan <= 5 ? 'P1' : bulan >= 6 && bulan <= 10 ? 'P2' : null;
+            if (!penilaian) return;
+            const semak = semakMap[penilaian];
+            if (semak && semak.status_semak === 'PERLU_BAIKI') {
+                // Elak duplikasi — satu entry per topik+subtopik
+                const key = data.topik + '|' + data.sub_topik;
+                if (!perluBaiki.find(x => x.key === key)) {
+                    perluBaiki.push({
+                        key,
+                        rekodId:    d.id,
+                        topik:      data.topik || '-',
+                        topikDesc:  data.topik_pembelajaran_main || '',
+                        subTopik:   data.sub_topik || '-',
+                        namaGuru:   data.nama_guru || '-',
+                        penilaian,
+                        catatan:    semak.catatan_semak || '',
+                        semakId:    semak.id,
+                        // simpan nilai untuk auto-isi form
+                        _data: data
+                    });
+                }
+            }
+        });
+
+        if (perluBaiki.length === 0) {
+            // Semua OK — tunjuk mesej hijau ringkas
+            const adaSemak = Object.values(semakMap).some(s => s.status_semak === 'DISEMAK');
+            if (adaSemak) {
+                panel.innerHTML =
+                    '<div class="noti-ok">' +
+                    '<span style="font-size:16px;font-weight:700;color:#15803d;">✅ Semua rekod telah disemak & disahkan</span>' +
+                    '</div>';
+                panel.style.display = 'block';
+            }
+            return;
+        }
+
+        // Ada rekod perlu baiki — bina jadual
+        const rows = perluBaiki.map((r, i) =>
+            '<tr>' +
+            '<td><strong>' + r.topik + '</strong>' +
+                (r.topikDesc ? '<div style="font-size:12px;color:#888;">' + r.topikDesc + '</div>' : '') +
+            '</td>' +
+            '<td>' + r.subTopik + '</td>' +
+            '<td>' + r.namaGuru + '</td>' +
+            '<td><span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;">' + r.penilaian + '</span></td>' +
+            '<td><button class="btn-baiki" onclick="autoIsiBaiki(\'' + r.rekodId + '\')">✏️ BAIKI</button></td>' +
+            '</tr>'
+        ).join('');
+
+        const catatanUnik = [...new Set(perluBaiki.map(r => r.catatan).filter(Boolean))];
+        const catatanHtml = catatanUnik.length
+            ? '<div style="margin-top:10px;padding:10px 14px;background:#fef9c3;border-radius:8px;font-size:13px;color:#92400e;">' +
+              '💬 Catatan penyemak: <em>' + catatanUnik.join(' | ') + '</em></div>'
+            : '';
+
+        panel.innerHTML =
+            '<div class="noti-perlu-baiki">' +
+            '<div style="font-size:17px;font-weight:800;color:#b45309;">⚠️ REKOD PERLU DIPERBAIKI — ' + perluBaiki.length + ' rekod</div>' +
+            catatanHtml +
+            '<table class="noti-table">' +
+            '<thead><tr>' +
+            '<th>TOPIK</th><th>SUB-TOPIK</th><th>NAMA GURU</th><th>PENILAIAN</th><th>TINDAKAN</th>' +
+            '</tr></thead>' +
+            '<tbody>' + rows + '</tbody>' +
+            '</table>' +
+            '</div>';
+        panel.style.display = 'block';
+
+    } catch(e) {
+        console.warn('Noti semakan error:', e.message);
+    }
+}
+
+// Auto-isi form dan scroll ke rekod yang perlu dibaiki
+async function autoIsiBaiki(rekodId) {
+    await loadRekodKeForm(rekodId);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    showToast('✏️ Rekod dimuatkan — sila baiki dan simpan semula', 'info');
 }
 
 // ── TANDA DROPDOWN SUBJEK ─────────────────────────────────────────────────────

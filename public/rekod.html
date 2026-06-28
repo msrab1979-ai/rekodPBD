@@ -49,6 +49,54 @@
         .mode-badge.baru { background: #dbeafe; color: #1d4ed8; }
         .mode-badge.edit { background: #dcfce7; color: #15803d; }
 
+        /* ── NOTIFIKASI SEMAKAN ─────────────────────────────── */
+        .noti-perlu-baiki {
+            background: #fff7ed;
+            border: 2px solid #f59e0b;
+            border-radius: 14px;
+            padding: 18px 22px;
+            margin-bottom: 18px;
+        }
+        .noti-ok {
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+            border-radius: 14px;
+            padding: 14px 22px;
+            margin-bottom: 18px;
+        }
+        .noti-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 14px;
+            font-size: 14px;
+        }
+        .noti-table th {
+            background: #fff3cd;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 700;
+            color: #92400e;
+            border-bottom: 2px solid #f59e0b;
+        }
+        .noti-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #fed7aa;
+            vertical-align: middle;
+        }
+        .noti-table tr:last-child td { border-bottom: none; }
+        .btn-baiki {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-baiki:hover { opacity: 0.9; transform: translateY(-1px); }
+
         /* ── SENARAI REKOD ───────────────────────────────────── */
         .rekod-meta { font-size: 12px; color: #94a3b8; margin-top: 2px; }
         .badge-p1 { background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700; }
@@ -213,6 +261,11 @@
                 <textarea id="inputAktiviti" class="form-control" rows="3" placeholder="Huraian aktiviti atau penilaian yang dijalankan untuk kelas ini..." style="resize:vertical;"></textarea>
             </div>
         </div>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- NOTIFIKASI SEMAKAN — muncul selepas pilih subjek       -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <div id="notiSemakanPanel" style="display:none;"></div>
 
         <!-- ══════════════════════════════════════════════════════ -->
         <!-- BAHAGIAN 2: JADUAL MURID (auto-muncul)                 -->
