@@ -184,6 +184,7 @@ async function loadDashboard() {
         allMenungguList = [];
         allSudahList = [];
 
+        // Rekod dalam comboMap — tambah info semakan
         Object.keys(comboMap).forEach(function(key) {
             var combo = comboMap[key];
             var semak = semakMap[key];
@@ -206,10 +207,40 @@ async function loadDashboard() {
                 sejarah_semakan:  semak ? (semak.sejarah_semakan || []) : []
             };
 
-            if      (status === 'DISEMAK')           allSudahList.push(item);
-            else if (status === 'PERLU_BAIKI')        allPerluBaikiList.push(item);
-            else if (status === 'MENUNGGU_SEMAKAN')   allMenungguList.push(item);
-            else                                      allBelumList.push(item);
+            if      (status === 'DISEMAK')         allSudahList.push(item);
+            else if (status === 'PERLU_BAIKI')     allPerluBaikiList.push(item);
+            else if (status === 'MENUNGGU_SEMAKAN') allMenungguList.push(item);
+            else                                   allBelumList.push(item);
+        });
+
+        // Semakan PERLU_BAIKI / MENUNGGU yang rekodnya mungkin diluar date range
+        // — ambil terus dari semakSnap supaya tidak terlepas
+        semakSnap.forEach(function(doc) {
+            var s = doc.data();
+            var key = s.kelas + '||' + s.subjek;
+            if (comboMap[key]) return; // dah ada, skip
+            var status = s.status_semak || 'BELUM_DISEMAK';
+            if (status !== 'PERLU_BAIKI' && status !== 'MENUNGGU_SEMAKAN') return;
+
+            var item = {
+                kelas:            s.kelas,
+                subjek:           s.subjek,
+                tahun:            s.tahun || '',
+                namaGuru:         s.nama_guru || '',
+                penilaian:        s.penilaian,
+                tahunRekod:       s.tahun_rekod,
+                jumlahRekod:      '-',
+                jumlahMurid:      s.jumlah_murid || '-',
+                semakId:          doc.id,
+                status:           status,
+                disemak_oleh:     s.disemak_oleh || null,
+                tarikh_semak:     s.tarikh_semak || null,
+                catatan_semak:    s.catatan_semak || null,
+                sejarah_semakan:  s.sejarah_semakan || []
+            };
+
+            if (status === 'PERLU_BAIKI')     allPerluBaikiList.push(item);
+            else if (status === 'MENUNGGU_SEMAKAN') allMenungguList.push(item);
         });
 
         // Sort A-Z
