@@ -131,6 +131,7 @@ async function loadDashboard() {
         var endDate   = penilaian === 'P1' ? tahunRekod + '-05-31' : tahunRekod + '-10-31';
 
         // Step 1 & 2 serentak
+        // semakSnap: ambil SEMUA penilaian untuk tahun ini — supaya PERLU_BAIKI/MENUNGGU tidak terlepas
         var results = await Promise.all([
             firestoreRetry(function() {
                 return db.collection('rekod_pbd')
@@ -140,13 +141,25 @@ async function loadDashboard() {
             firestoreRetry(function() {
                 return db.collection('semakan_penilaian')
                     .where('tahun_rekod', '==', tahunRekod)
-                    .where('penilaian', '==', penilaian)
                     .get();
             })
         ]);
 
         var rekodSnap = results[0];
-        var semakSnap = results[1];
+        var allSemakSnap = results[1];
+
+        // Pisah: semakSnap = penilaian semasa, semakActiveSnap = semua status aktif
+        var semakSnap = { forEach: function(fn) {
+            allSemakSnap.forEach(function(doc) {
+                if (doc.data().penilaian === penilaian) fn(doc);
+            });
+        }};
+        var semakActiveSnap = { forEach: function(fn) {
+            allSemakSnap.forEach(function(doc) {
+                var s = doc.data().status_semak;
+                if (s === 'PERLU_BAIKI' || s === 'MENUNGGU_SEMAKAN') fn(doc);
+            });
+        }};
 
         // Group by kelas||subjek — tapis tarikh dalam JS
         var comboMap = {};
@@ -213,9 +226,8 @@ async function loadDashboard() {
             else                                   allBelumList.push(item);
         });
 
-        // Semakan PERLU_BAIKI / MENUNGGU yang rekodnya mungkin diluar date range
-        // — ambil terus dari semakSnap supaya tidak terlepas
-        semakSnap.forEach(function(doc) {
+        // Semakan PERLU_BAIKI / MENUNGGU dari SEMUA penilaian — supaya tidak terlepas
+        semakActiveSnap.forEach(function(doc) {
             var s = doc.data();
             var key = s.kelas + '||' + s.subjek;
             if (comboMap[key]) return; // dah ada, skip
