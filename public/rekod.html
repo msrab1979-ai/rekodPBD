@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rekod PBD - Sistem Rekod PBD</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/mobile.css">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        /* ── FORM SECTION ────────────────────────────────────── */
+        .form-section {
+            background: white;
+            border-radius: 14px;
+            padding: 22px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        .form-section h3 {
+            font-size: 15px;
+            color: var(--dark);
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border);
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+        }
+
+        /* ── MURID TABLE ─────────────────────────────────────── */
+        .bulk-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+        .tp-sel { width: 65px; padding: 5px; }
+
+        /* ── MODE BADGE ──────────────────────────────────────── */
+        .mode-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .mode-badge.baru { background: #dbeafe; color: #1d4ed8; }
+        .mode-badge.edit { background: #dcfce7; color: #15803d; }
+
+        /* ── SENARAI REKOD ───────────────────────────────────── */
+        .rekod-meta { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+        .badge-p1 { background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700; }
+        .badge-p2 { background:#ede9fe;color:#6d28d9;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700; }
+        .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+
+        /* ── DIVIDER ─────────────────────────────────────────── */
+        .section-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 28px 0 18px;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .section-divider::before, .section-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e2e8f0;
+        }
+
+        /* ── PDF TEMPLATE ────────────────────────────────────── */
+        .pdf-doc {
+            width: 210mm;
+            padding: 11mm 13mm 10mm 13mm;
+            box-sizing: border-box;
+            background: white;
+            font-family: 'Amiri','Segoe UI','Arial',sans-serif;
+            font-size: 11px;
+            color: #1e293b;
+            display: none;
+            line-height: 1.5;
+        }
+        .pdf-doc.active { display: block; }
+        .pdh-hdr { background:#1e3a8a;color:white;padding:12px 16px;border-radius:5px 5px 0 0; }
+        .pdh-hdr table { width:100%;border-collapse:collapse; }
+        .pdh-hdr-logo { width:54px;height:54px;background:white;color:#1e3a8a;border-radius:50%;font-size:13px;font-weight:900;text-align:center;line-height:54px;letter-spacing:-1px; }
+        .pdh-hdr-school { font-size:17px;font-weight:700; }
+        .pdh-hdr-sub { font-size:10px;opacity:0.85;margin-top:3px; }
+        .pdh-hdr-yr { font-size:9px;opacity:0.65;margin-top:2px; }
+        .pdh-accent { height:4px;background:linear-gradient(90deg,#f59e0b 0%,#ef4444 40%,#8b5cf6 100%);margin-bottom:11px;border-radius:0 0 3px 3px; }
+        .pdh-info-tbl { width:100%;border-collapse:collapse;margin-bottom:11px;font-size:10.5px;border:1px solid #cbd5e1; }
+        .pdh-info-tbl tr { border-bottom:1px solid #e2e8f0; }
+        .pdh-info-tbl tr:last-child { border-bottom:none; }
+        .pdh-lbl { background:#eff6ff;color:#1e40af;font-weight:700;padding:7px 10px;font-size:9.5px;width:18%;white-space:nowrap; }
+        .pdh-val { padding:7px 10px;width:32%; }
+        .pdh-topik-wrap { border:1.5px solid #c7d2fe;border-radius:5px;margin-bottom:12px;overflow:hidden; }
+        .pdh-topik-ttl { background:#eff6ff;padding:5px 12px;font-size:9px;font-weight:700;color:#3730a3;border-bottom:1px solid #c7d2fe; }
+        .pdh-topik-tbl { width:100%;border-collapse:collapse; }
+        .pdh-topik-tbl td { padding:7px 12px; }
+        .pdh-topik-tbl tr+tr td { border-top:1px solid #e0e7ff; }
+        .pdh-topik-key { font-size:9.5px;font-weight:700;color:#4338ca;width:110px;vertical-align:top;padding-top:9px; }
+        .pdh-topik-arabic { font-size:13px;direction:rtl;text-align:right;font-family:'Amiri','Traditional Arabic',serif;line-height:1.9;color:#1e293b; }
+        .pdh-sec-ttl { background:#1e3a8a;color:white;padding:6px 12px;font-size:9.5px;font-weight:700;letter-spacing:0.8px;border-radius:4px;margin-bottom:10px; }
+        .pdh-tbl { width:100%;border-collapse:collapse;margin-bottom:14px;font-size:10px; }
+        .pdh-tbl thead { background:#1e3a8a;color:white; }
+        .pdh-tbl th { padding:8px 6px;font-size:9px;font-weight:700;letter-spacing:0.4px;text-align:center;border:1px solid #1e40af; }
+        .pdh-tbl td { padding:5px 6px;border:1px solid #e2e8f0;vertical-align:middle; }
+        .pdh-tbl tbody tr:nth-child(even) { background:#f8faff; }
+        .pdh-bil-col { text-align:center;color:#94a3b8;font-weight:700; }
+        .pdh-tp-ball { display:inline-block;width:24px;height:24px;border-radius:50%;line-height:24px;text-align:center;font-size:11px;font-weight:700; }
+        .tp-c1,.tp-c2{background:#fee2e2;color:#991b1b}.tp-c3{background:#ffedd5;color:#9a3412}.tp-c4{background:#fef9c3;color:#854d0e}.tp-c5{background:#dcfce7;color:#15803d}.tp-c6{background:#bbf7d0;color:#14532d}
+        .pdh-bdg-m{background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px;font-size:8.5px;font-weight:700;white-space:nowrap}
+        .pdh-bdg-b{background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:20px;font-size:8.5px;font-weight:700;white-space:nowrap}
+        .pdh-bar-tbl{width:100%;border-collapse:collapse;margin-bottom:14px}
+        .pdh-bar-tbl td{padding:2.5px 4px;vertical-align:middle}
+        .pdh-bar-lbl{font-size:9.5px;font-weight:700;color:#475569;width:32px}
+        .pdh-bar-wrap{background:#e2e8f0;border-radius:3px;height:14px;width:100%}
+        .pdh-bar-fill{height:14px;border-radius:3px}
+        .pdh-bar-stat{font-size:9.5px;color:#64748b;white-space:nowrap;padding-left:8px;width:110px}
+        .pdh-pen-tbl{width:100%;border-collapse:collapse;margin-top:4px}
+        .pdh-pen-tbl td{padding:4px;width:50%}
+        .pdh-pen-box{border-radius:6px;padding:13px 12px;text-align:center}
+        .pdh-pen-box.m{background:#f0fdf4;border:1.5px solid #86efac}
+        .pdh-pen-box.b{background:#fef2f2;border:1.5px solid #fca5a5}
+        .pdh-pen-lbl{font-size:9px;font-weight:700;letter-spacing:0.3px;margin-bottom:5px}
+        .pdh-pen-box.m .pdh-pen-lbl{color:#15803d}.pdh-pen-box.b .pdh-pen-lbl{color:#dc2626}
+        .pdh-pen-num{font-size:30px;font-weight:800;line-height:1;margin:4px 0}
+        .pdh-pen-box.m .pdh-pen-num{color:#15803d}.pdh-pen-box.b .pdh-pen-num{color:#dc2626}
+        .pdh-pen-sub{font-size:9px;color:#888}
+        .pdh-ftr{margin-top:14px;padding-top:8px;border-top:1.5px solid #e2e8f0;font-size:8.5px;color:#94a3b8}
+        .pdh-ftr table{width:100%;border-collapse:collapse}
+    </style>
+</head>
+<body>
+    <div id="loader"><div class="spinner"></div><div class="loader-message">Loading...</div></div>
+    <div id="toast-container"></div>
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-top">
+            <div class="header-title">
+                <div class="school-logo">SI</div>
+                <div class="title-text">
+                    <h1 id="pageTitle">REKOD PBD</h1>
+                    <p id="pageSubtitle">Masuk rekod baharu atau kemaskini rekod sedia ada</p>
+                </div>
+            </div>
+            <a href="index.html" class="admin-link">🏠 HOME</a>
+        </div>
+    </div>
+
+    <div class="content-container">
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- BAHAGIAN 1: FORM PILIHAN                               -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <div class="form-section">
+            <h3>📋 Maklumat Sesi Penilaian</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Tahun Darjah: *</label>
+                    <select id="inputTahun" class="form-control" onchange="onTahunChange()">
+                        <option value="">Pilih Tahun</option>
+                        <option value="SATU">SATU</option>
+                        <option value="DUA">DUA</option>
+                        <option value="TIGA">TIGA</option>
+                        <option value="EMPAT">EMPAT</option>
+                        <option value="LIMA">LIMA</option>
+                        <option value="ENAM">ENAM</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Kelas: *</label>
+                    <select id="inputKelas" class="form-control" onchange="onKelasChange()" disabled>
+                        <option value="">Pilih Kelas</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Subjek: *</label>
+                    <select id="inputSubjek" class="form-control" onchange="onSubjekChange()" disabled>
+                        <option value="">Pilih Subjek</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Topik: *</label>
+                    <select id="inputTopik" class="form-control" onchange="onTopikChange()" disabled>
+                        <option value="">Pilih Topik</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Sub-Topik: *</label>
+                    <select id="inputSubtopik" class="form-control" onchange="onSubtopikChange()" disabled>
+                        <option value="">Pilih Sub-Topik</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Nama Guru: *</label>
+                    <input type="text" id="inputNamaGuru" class="form-control" placeholder="Nama guru" style="text-transform:uppercase;">
+                </div>
+                <div class="form-group">
+                    <label>Tarikh: *</label>
+                    <input type="date" id="inputTarikh" class="form-control">
+                </div>
+            </div>
+            <div class="form-group" style="margin-top:14px;">
+                <label>Aktiviti / Penilaian: <span style="color:#94a3b8;font-weight:400;">(optional)</span></label>
+                <textarea id="inputAktiviti" class="form-control" rows="3" placeholder="Huraian aktiviti atau penilaian yang dijalankan untuk kelas ini..." style="resize:vertical;"></textarea>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- BAHAGIAN 2: JADUAL MURID (auto-muncul)                 -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <div id="muridSection" style="display:none;">
+            <div class="form-section">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <h3 style="border:none;padding:0;margin:0;">👥 Senarai Murid</h3>
+                        <span id="modeBadge" class="mode-badge baru">✏️ Rekod Baru</span>
+                    </div>
+                    <div class="bulk-btns">
+                        <button class="btn btn-warning btn-sm" onclick="setAllTP(3)">⚡ TP=3</button>
+                        <button class="btn btn-success btn-sm" onclick="setAllTP(4)">⚡ TP=4</button>
+                        <button class="btn btn-sm" style="background:#10b981;color:white;" onclick="setAllTP(5)">⚡ TP=5</button>
+                        <button class="btn btn-sm" style="background:#0891b2;color:white;" onclick="setAllTP(6)">⚡ TP=6</button>
+                        <button class="btn btn-sm" style="background:#16a34a;color:white;" onclick="setAllPenguasaan('Menguasai')">✅ Semua Menguasai</button>
+                        <button class="btn btn-sm" style="background:#dc2626;color:white;" onclick="setAllPenguasaan('Belum Menguasai')">❌ Semua Belum</button>
+                    </div>
+                </div>
+                <div class="alert alert-info" style="margin-bottom:14px;">
+                    <strong>Jumlah Murid:</strong> <span id="totalMurid">0</span> orang
+                </div>
+                <div class="table-container">
+                    <table id="muridTable">
+                        <thead>
+                            <tr>
+                                <th style="width:50px;">BIL</th>
+                                <th style="width:90px;">NO KP</th>
+                                <th>NAMA MURID</th>
+                                <th style="width:70px;">TP</th>
+                                <th style="width:140px;">PENGUASAAN</th>
+                                <th style="width:180px;">CATATAN</th>
+                            </tr>
+                        </thead>
+                        <tbody id="muridBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- Analisis live -->
+                <div id="analisisSection" style="margin-top:18px;display:none;">
+                    <h4 style="margin-bottom:10px;">📊 Analisis Tahap Penguasaan (TP)</h4>
+                    <div id="analisisTP" style="background:var(--light);padding:16px;border-radius:10px;margin-bottom:14px;"></div>
+                    <h4 style="margin-bottom:10px;">📊 Rumusan Penguasaan</h4>
+                    <div id="analisisPenguasaan" style="background:var(--light);padding:16px;border-radius:10px;"></div>
+                </div>
+
+                <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+                    <button class="btn btn-danger" onclick="resetForm()">❌ Reset</button>
+                    <button id="btnSimpan" class="btn btn-primary" onclick="simpanRekod()">💾 Simpan Rekod</button>
+                    <button id="btnPDF" class="btn btn-info" onclick="janaPDF()" style="display:none;">📄 Jana PDF</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="emptyState" style="text-align:center;padding:50px 20px;color:var(--text-light);">
+            <div style="font-size:56px;margin-bottom:16px;">📝</div>
+            <h3 style="color:var(--dark);margin-bottom:8px;">Sila Lengkapkan Maklumat Sesi</h3>
+            <p>Pilih Tahun, Kelas, Subjek, Topik dan Sub-Topik untuk mula</p>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- BAHAGIAN 3: SENARAI REKOD KELAS INI                    -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <div id="senaraiSection" style="display:none;">
+            <div class="section-divider">📋 Rekod Lain Untuk Kelas Ini</div>
+
+            <!-- Status semakan -->
+            <div id="statusSemakBar" style="display:none;margin-bottom:16px;">
+                <div class="status-grid">
+                    <div id="statusP1Bar"></div>
+                    <div id="statusP2Bar"></div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>BIL</th>
+                            <th>TOPIK</th>
+                            <th>SUB-TOPIK</th>
+                            <th>TARIKH</th>
+                            <th>GURU</th>
+                            <th>MURID</th>
+                            <th>STATUS</th>
+                            <th>TINDAKAN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="senaraiBody">
+                        <tr><td colspan="8" style="text-align:center;padding:30px;color:#999;">Pilih kelas dan subjek untuk lihat rekod</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div><!-- end content-container -->
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!-- MODAL: REKOD DIKUNCI                                         -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <div id="modalRekodDikunci" class="modal">
+        <div class="modal-content" style="max-width:460px;">
+            <div class="modal-header" style="background:#f0fdf4;border-bottom:2px solid #86efac;">
+                <h2 style="color:#15803d;">🔒 Rekod Telah Disemak</h2>
+                <button class="close-btn" onclick="closeModal('modalRekodDikunci')">✕</button>
+            </div>
+            <div class="modal-body" style="text-align:center;padding:28px;">
+                <div style="font-size:56px;margin-bottom:14px;">🔒</div>
+                <h3 style="color:#15803d;margin-bottom:14px;">Rekod Ini Telah Disahkan</h3>
+                <div id="dikunciInfo" style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:14px;text-align:left;font-size:14px;line-height:1.8;margin-bottom:16px;"></div>
+                <p style="color:#666;font-size:14px;">Hubungi pentadbir untuk membuka semula semakan.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal('modalRekodDikunci')">OK, Faham</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CONFIRM DELETE -->
+    <div id="modalHapus" class="modal">
+        <div class="modal-content" style="max-width:480px;">
+            <div class="modal-header">
+                <h2>⚠️ Pengesahan Padam</h2>
+                <button class="close-btn" onclick="closeModal('modalHapus')">✕</button>
+            </div>
+            <div class="modal-body">
+                <p id="hapusMsg"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="confirmHapus()">🗑️ Ya, Padam</button>
+                <button class="btn btn-primary" onclick="closeModal('modalHapus')">❌ Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF TEMPLATE (hidden) -->
+    <div id="pdfTemplate" class="pdf-doc">
+        <div class="pdh-hdr">
+            <table><tr>
+                <td style="width:66px;vertical-align:middle;">
+                    <div class="pdh-hdr-logo" id="pdfLogoText">PBD</div>
+                </td>
+                <td style="vertical-align:middle;padding-left:14px;">
+                    <div class="pdh-hdr-school" id="pdfNamaSekolah">SK SULTAN ISMAIL</div>
+                    <div class="pdh-hdr-sub">REKOD PENILAIAN BERASASKAN DARJAH (PBD)</div>
+                    <div class="pdh-hdr-yr" id="pdfTahunLabel">Tahun Akademik 2026</div>
+                </td>
+            </tr></table>
+        </div>
+        <div class="pdh-accent"></div>
+        <table class="pdh-info-tbl">
+            <tr>
+                <td class="pdh-lbl">NAMA GURU</td><td class="pdh-val" id="pdfGuru"></td>
+                <td class="pdh-lbl">TARIKH PENILAIAN</td><td class="pdh-val" id="pdfTarikh"></td>
+            </tr>
+            <tr>
+                <td class="pdh-lbl">SUBJEK</td><td class="pdh-val" id="pdfSubjek"></td>
+                <td class="pdh-lbl">KELAS</td><td class="pdh-val" id="pdfKelas"></td>
+            </tr>
+        </table>
+        <div class="pdh-topik-wrap">
+            <div class="pdh-topik-ttl">TOPIK PEMBELAJARAN</div>
+            <table class="pdh-topik-tbl">
+                <tr><td class="pdh-topik-key">Topik:</td><td class="pdh-topik-arabic" id="pdfTopik"></td></tr>
+                <tr><td class="pdh-topik-key">Sub-Topik:</td><td class="pdh-topik-arabic" id="pdfSubtopik"></td></tr>
+            </table>
+        </div>
+        <div class="pdh-sec-ttl">SENARAI MURID DAN TAHAP PENGUASAAN</div>
+        <table class="pdh-tbl">
+            <thead>
+                <tr>
+                    <th style="width:5%;">BIL</th>
+                    <th style="width:38%;text-align:left;padding-left:8px;">NAMA MURID</th>
+                    <th style="width:8%;">TP</th>
+                    <th style="width:21%;">PENGUASAAN</th>
+                    <th style="width:28%;text-align:left;padding-left:8px;">CATATAN</th>
+                </tr>
+            </thead>
+            <tbody id="pdfMuridTbody"></tbody>
+        </table>
+        <div class="pdh-sec-ttl">ANALISIS TAHAP PENGUASAAN (TP)</div>
+        <div id="pdfTPAnalysis"></div>
+        <div class="pdh-sec-ttl">RUMUSAN PENGUASAAN</div>
+        <table class="pdh-pen-tbl">
+            <tr>
+                <td><div class="pdh-pen-box m">
+                    <div class="pdh-pen-lbl">MENGUASAI</div>
+                    <div class="pdh-pen-num" id="pdfMenguasaiCount">0</div>
+                    <div class="pdh-pen-sub" id="pdfMenguasaiInfo"></div>
+                </div></td>
+                <td><div class="pdh-pen-box b">
+                    <div class="pdh-pen-lbl">BELUM MENGUASAI</div>
+                    <div class="pdh-pen-num" id="pdfBelumCount">0</div>
+                    <div class="pdh-pen-sub" id="pdfBelumInfo"></div>
+                </div></td>
+            </tr>
+        </table>
+        <div class="pdh-ftr">
+            <table><tr>
+                <td id="pdfFooterSchool">SK Sultan Ismail - Sistem Rekod PBD</td>
+                <td style="text-align:center;color:#cbd5e1;">Dokumen Sulit — Guna Dalaman Sahaja</td>
+                <td style="text-align:right;" id="pdfFooterDate"></td>
+            </tr></table>
+        </div>
+    </div>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="js/rekod.js"></script>
+</body>
+</html>

@@ -20,9 +20,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function checkLogin() {
-    if (localStorage.getItem('semakLoggedIn') === 'true') {
-        showPanel();
-    }
+    // Sentiasa tunjuk login screen — jangan auto-login
+    localStorage.removeItem('semakLoggedIn');
 }
 
 // ============================================================================
@@ -32,26 +31,33 @@ async function loginSemak() {
     var pw = document.getElementById('semakPassword').value;
     if (!pw) { showToast('Sila masukkan kata laluan', 'warning'); return; }
     showLoading('Menyemak kata laluan...');
+
+    // Password tetap: semak123 — sesiapa boleh masuk
+    var defaultPw = 'semak123';
+    var correctPw = defaultPw;
+
     try {
         var doc = await firestoreRetry(function() {
             return db.collection('config').doc('system_settings').get();
         });
-        var correctPw = 'semak123';
         if (doc.exists) {
-            correctPw = doc.data().semakPassword || 'semak123';
             if (doc.data().namaSekolah) namaSekolah = doc.data().namaSekolah;
-        }
-        if (pw === correctPw) {
-            localStorage.setItem('semakLoggedIn', 'true');
-            hideLoading();
-            showPanel();
-        } else {
-            showToast('❌ Kata laluan salah!', 'error');
-            document.getElementById('semakPassword').value = '';
-            hideLoading();
+            // Ambil password dari Firestore HANYA jika ada & tidak kosong
+            if (doc.data().semakPassword) correctPw = doc.data().semakPassword;
         }
     } catch(e) {
-        showToast('Error: ' + e.message, 'error');
+        // Gagal Firestore — guna default
+        correctPw = defaultPw;
+    }
+
+    // Terima password dari Firestore ATAU password default semak123
+    if (pw === correctPw || pw === defaultPw) {
+        localStorage.setItem('semakLoggedIn', 'true');
+        hideLoading();
+        showPanel();
+    } else {
+        showToast('❌ Kata laluan salah!', 'error');
+        document.getElementById('semakPassword').value = '';
         hideLoading();
     }
 }

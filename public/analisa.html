@@ -11,6 +11,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         .analisa-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:25px; }
         .analisa-tab { padding:12px 20px; border:2px solid var(--border); border-radius:25px; background:white; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.3s; color:#555; }
@@ -90,6 +91,7 @@
             <button class="analisa-tab" onclick="switchAnalisaTab('intervensi', this)">⚠️ Intervensi</button>
             <button class="analisa-tab" onclick="switchAnalisaTab('perbandingan', this)">📊 Perbandingan</button>
             <button class="analisa-tab" onclick="switchAnalisaTab('trend', this)">📈 Trend Subjek</button>
+            <button class="analisa-tab" onclick="switchAnalisaTab('keputusan', this)">📋 Keputusan Kelas</button>
         </div>
 
         <!-- ============================================================ -->
@@ -170,6 +172,77 @@
             <div id="trn-content">
                 <div style="text-align:center;padding:60px;color:#999;"><div style="font-size:60px;">📈</div><p>Pilih tahun rekod, subjek dan tahun darjah</p></div>
             </div>
+        </div>
+    </div>
+
+        <!-- ============================================================ -->
+        <!-- TAB 6: KEPUTUSAN KELAS                                        -->
+        <!-- ============================================================ -->
+        <div id="section-keputusan" class="analisa-section">
+            <div class="filter-row">
+                <div class="form-group">
+                    <label>Subjek:</label>
+                    <select id="kpt-subjek" class="form-control" onchange="kptLoadTahun()">
+                        <option value="">Pilih Subjek</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tahun Darjah:</label>
+                    <select id="kpt-tahun" class="form-control" onchange="kptLoadKelas()">
+                        <option value="">Pilih Tahun</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Kelas:</label>
+                    <select id="kpt-kelas" class="form-control" onchange="kptLoadData()">
+                        <option value="">Pilih Kelas</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>📋 Tempoh Penilaian:</label>
+                    <select id="kpt-penilaian" class="form-control" onchange="kptLoadData()">
+                        <option value="">Semua Tempoh</option>
+                        <option value="P1">Penilaian 1 (Jan–Mei)</option>
+                        <option value="P2">Penilaian 2 (Jun–Okt)</option>
+                    </select>
+                </div>
+                <button class="export-btn" onclick="kptExportPDF()">📄 Export PDF</button>
+            </div>
+            <div id="kpt-content">
+                <div style="text-align:center;padding:60px;color:#999;">
+                    <div style="font-size:60px;">📋</div>
+                    <p>Pilih subjek, tahun darjah dan kelas untuk melihat keputusan</p>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- end content-container -->
+
+    <!-- PDF TEMPLATE: KEPUTUSAN KELAS -->
+    <div id="pdfKeputusan" style="display:none;width:297mm;padding:12mm 14mm;box-sizing:border-box;background:white;font-family:'Segoe UI',Arial,sans-serif;font-size:10px;color:#1e293b;line-height:1.4;">
+        <!-- Header -->
+        <div style="background:#1e3a8a;color:white;padding:12px 16px;border-radius:5px 5px 0 0;margin-bottom:0;">
+            <table style="width:100%;border-collapse:collapse;"><tr>
+                <td style="vertical-align:middle;">
+                    <div style="font-size:16px;font-weight:700;letter-spacing:0.3px;" id="pdfKptSekolah">SK SULTAN ISMAIL</div>
+                    <div style="font-size:10px;opacity:0.85;margin-top:2px;">KEPUTUSAN PENILAIAN BERASASKAN DARJAH (PBD)</div>
+                </td>
+                <td style="text-align:right;vertical-align:middle;">
+                    <div style="font-size:11px;opacity:0.9;font-weight:600;" id="pdfKptTajuk"></div>
+                    <div style="font-size:9px;opacity:0.7;margin-top:2px;" id="pdfKptTempoh"></div>
+                </td>
+            </tr></table>
+        </div>
+        <div style="height:4px;background:linear-gradient(90deg,#f59e0b,#ef4444,#8b5cf6);margin-bottom:10px;border-radius:0 0 3px 3px;"></div>
+
+        <!-- Jadual murid -->
+        <div id="pdfKptTable"></div>
+
+        <!-- Footer -->
+        <div style="margin-top:12px;padding-top:8px;border-top:1.5px solid #e2e8f0;font-size:8px;color:#94a3b8;display:flex;justify-content:space-between;">
+            <span id="pdfKptFooterL">SK Sultan Ismail — Sistem Rekod PBD</span>
+            <span>Dokumen Sulit — Guna Dalaman Sahaja</span>
+            <span id="pdfKptFooterR"></span>
         </div>
     </div>
 
