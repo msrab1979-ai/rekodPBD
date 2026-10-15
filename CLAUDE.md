@@ -23,7 +23,7 @@ firebase deploy --only hosting
 | `public/analisa.html` + `js/analisa.js` | 6 tab analisis + Isi Pantas PBD |
 | `public/semakan.html` + `js/semakan.js` | Semakan pentadbir |
 | `public/pengurusan-murid.html` + `js/murid.js` | Urus murid |
-| `public/js/isipantas.js` | Jana rekod pukal bagi topik kosong |
+| `public/js/isipantas.js` | Jana rekod pukal + tulis semula TP sedia ada |
 | `public/js/sync-murid.js` | Selaras murid ↔ rekod PBD |
 | `public/helper-pbd.html` | Panduan pasang bookmarklet (DIJANA) |
 | `helper-pbd/tampal-pbd.js` | Sumber bookmarklet SPPB |
@@ -162,18 +162,46 @@ Buang komen blok sahaja, kekalkan `\n`. `bina-panduan.js` menjalankan
 
 `public/js/isipantas.js` — butang di bawah kiri `analisa.html`.
 
-Menjana rekod bagi topik yang BELUM ada rekod. Guru menetapkan satu TP setiap
-murid; sistem mencipta rekod untuk setiap topik kosong dalam tempoh dipilih.
+Menjana rekod bagi topik yang BELUM ada rekod, dan boleh juga **menulis semula
+TP** rekod yang sudah ada. Guru menetapkan satu TP setiap murid; sistem
+mencipta rekod untuk setiap topik kosong dalam tempoh dipilih.
 
 Satu subjek satu darjah boleh ada 40+ subtopik: 40 topik × 33 murid = 1,320
 kemasukan manual, menjadi 33 klik.
 
-- Topik yang SUDAH ada rekod tidak pernah disentuh
 - Pratonton memaparkan setiap topik; guru boleh buang mana-mana
 - Setiap rekod ditanda `dijana_auto` + `dijana_kumpulan` → butang "Buang janaan"
 - Tarikh diagih merentasi tempoh, melangkau hujung minggu (Terengganu: Jumaat–
   Sabtu) dan cuti; tidak pernah melepasi hari ini
 - Cadangan TP diambil daripada purata rekod sedia ada murid
+
+## Tulis semula TP (rewrite)
+
+Pratonton ada DUA bahagian: **➕ TOPIK BAHARU** (ditanda default) dan
+**♻️ TULIS SEMULA** (TIDAK ditanda — guru mesti menandanya sendiri).
+
+Setiap baris "tulis semula" menunjukkan tarikh rekod dan label sumber:
+`auto` (`dijana_auto === true`) atau **`manual`** (guru isi di `rekod.html`).
+Menanda rekod manual mencetuskan **dialog pengesahan kedua**.
+
+Tulis semula menukar `tp` + `penguasaan` + ketiga-tiga `jumlah_*` SAHAJA.
+Dikekalkan: tarikh, nama guru, aktiviti kelas, **catatan setiap murid**.
+Ditanda `ditulis_semula: true` + `ditulis_semula_pada` sebagai jejak audit.
+
+### Pagar keselamatan (jangan longgarkan)
+
+- **TIADA UNDO** — TP lama hilang terus. Default tidak ditanda ialah pagar utama.
+- Padanan ikut **No. KP**, bukan susunan baris — array `murid` rekod lama boleh
+  tersusun lain. Murid dalam rekod lama tetapi TIADA dalam senarai aktif (cth
+  murid pindah) **tidak disentuh**; TP asal mereka kekal.
+- Satu topik boleh ada beberapa rekod dalam tempoh sama (dinilai dua kali).
+  Hanya rekod bertarikh **TERKINI** ditulis semula — menimpa kesemuanya
+  memadam sejarah penilaian.
+- Rekod dibaca dahulu (`Promise.all`) sebelum `batch.update`, bukan ditimpa
+  dengan `set` — itulah yang mengekalkan catatan guru.
+- Tulis semula TIDAK menetapkan `dijana_auto`, jadi butang "Buang janaan"
+  (tapis `dijana_auto == true`) tidak akan membuang rekod manual yang ditulis
+  semula.
 
 ---
 

@@ -8,14 +8,22 @@
 // tertinggal secara manual bermakna 33 × 34 murid = 1,122 kemasukan; di sini
 // ia menjadi satu TP setiap murid.
 //
+// TULIS SEMULA (rewrite):
+// Topik yang SUDAH ada rekod juga boleh dikemas kini TP-nya — tetapi hanya
+// jika guru menandanya sendiri dalam pratonton. Default: TIDAK ditanda.
+// Kemas kini hanya menyentuh tp + penguasaan + jumlah; tarikh, nama guru,
+// aktiviti kelas dan catatan murid dikekalkan.
+//
 // PRINSIP KESELAMATAN:
-//   - Topik yang SUDAH ada rekod tidak pernah disentuh
-//   - Pratonton memaparkan setiap topik yang akan dicipta; guru boleh buang
-//   - Setiap rekod ditanda `dijana_auto` supaya boleh dibuang semula sekali gus
+//   - Topik sedia ada TIDAK disentuh melainkan guru menandanya
+//   - Pratonton memaparkan setiap topik — yang baharu dan yang akan ditimpa
+//   - Dialog pengesahan menyatakan bilangan rekod yang akan ditulis semula
+//   - Setiap rekod baharu ditanda `dijana_auto` supaya boleh dibuang semula
 //   - Tarikh diagih merentasi tempoh, melangkau hujung minggu dan cuti
 // ============================================================================
 
 let ipTopikKosong  = [];   // [{topik, main, sub, pilih}]
+let ipTopikAda     = [];   // [{docId, topik, main, sub, tarikh, dijanaAuto, pilih}]
 let ipMuridSenarai = [];   // [{noKp, nama, tp, cadangan}]
 let ipKonteks      = null; // {subjek, tahun, kelas, penilaian, label}
 
@@ -212,6 +220,7 @@ async function ipJana() {
 
         // Rekod sedia ada dalam tempoh — kunci padanan ikut topik + subtopik
         const sudahAda = new Set();
+        const rekodAda = {};   // {kunci: {docId, tarikh, dijanaAuto}} untuk tulis semula
         const tpLepas  = {};   // {noKp: [tp,...]} untuk cadangan
         snapRekod.forEach(d => {
             const r = d.data();
@@ -219,7 +228,21 @@ async function ipJana() {
             const dalamTempoh = !penilaian
                 || (penilaian === 'P1' && bln >= 1 && bln <= 5)
                 || (penilaian === 'P2' && bln >= 6 && bln <= 10);
-            if (dalamTempoh) sudahAda.add((r.topik || '') + '|' + (r.sub_topik || ''));
+            if (dalamTempoh) {
+                const kunci = (r.topik || '') + '|' + (r.sub_topik || '');
+                sudahAda.add(kunci);
+                /* Satu topik boleh ada beberapa rekod dalam tempoh yang sama
+                   (cth dinilai dua kali). Ambil yang TERKINI sahaja untuk
+                   ditulis semula — menimpa kesemuanya memadam sejarah. */
+                const lama = rekodAda[kunci];
+                if (!lama || (r.tarikh_string || '') > lama.tarikh) {
+                    rekodAda[kunci] = {
+                        docId: d.id,
+                        tarikh: r.tarikh_string || '',
+                        dijanaAuto: r.dijana_auto === true
+                    };
+                }
+            }
             // Cadangan TP diambil dari SEMUA rekod, bukan tempoh ini sahaja
             (r.murid || []).forEach(m => {
                 if (!m.noKp || !m.tp) return;
@@ -237,9 +260,27 @@ async function ipJana() {
                 pilih: true
             }));
 
-        if (!ipTopikKosong.length) {
+        /* Topik yang SUDAH ada rekod — calon tulis semula.
+           pilih:false — guru mesti menandanya sendiri. */
+        ipTopikAda = topik
+            .filter(t => sudahAda.has((t.topik || '') + '|' + (t.topik_pembelajaran || '')))
+            .map(t => {
+                const r = rekodAda[(t.topik || '') + '|' + (t.topik_pembelajaran || '')] || {};
+                return {
+                    docId: r.docId || '',
+                    topik: t.topik || '',
+                    main: t.topik_pembelajaran_main || t.topik_pembelajaran || '',
+                    sub: t.topik_pembelajaran || '',
+                    tarikh: r.tarikh || '',
+                    dijanaAuto: r.dijanaAuto === true,
+                    pilih: false
+                };
+            })
+            .filter(t => t.docId);
+
+        if (!ipTopikKosong.length && !ipTopikAda.length) {
             hideLoading();
-            showToast('✅ Semua topik sudah ada rekod untuk ' + label, 'success');
+            showToast('Tiada topik untuk ' + label, 'warning');
             return;
         }
 
@@ -265,7 +306,7 @@ async function ipJana() {
         }
 
         ipKonteks = { subjek, tahun, kelas, fullKelas, penilaian, label,
-                      jumlahTopik: topik.length, sudahAda: topik.length - ipTopikKosong.length };
+                      jumlahTopik: topik.length };
         hideLoading();
         ipPaparTP();
 
@@ -296,7 +337,7 @@ function ipPaparTP() {
           </div>
           <div style="margin-top:8px;font-size:12px;color:#64748b;">
             <strong>${ipTopikKosong.length}</strong> topik masih kosong &middot;
-            <strong>${k.sudahAda}</strong> sudah ada rekod (tidak disentuh) &middot;
+            <strong>${ipTopikAda.length}</strong> sudah ada rekod (boleh tulis semula) &middot;
             <strong>${ipMuridSenarai.length}</strong> murid
           </div>
           ${adaCadangan ? `<div style="margin-top:8px;font-size:12px;color:#15803d;">
@@ -338,8 +379,7 @@ function ipPaparTP() {
         <div style="padding:16px 22px;border-top:2px solid #e2e8f0;display:flex;gap:10px;
              justify-content:flex-end;align-items:center;">
           <span style="margin-right:auto;font-size:13px;color:#475569;">
-            Akan cipta <strong>${ipTopikKosong.length}</strong> rekod
-            × ${ipMuridSenarai.length} murid
+            TP ini digunakan pada topik yang anda pilih di skrin seterusnya
           </span>
           <button class="form-control" style="width:auto;padding:8px 18px;cursor:pointer;"
                   onclick="ipTutup()">Batal</button>
@@ -378,37 +418,82 @@ function ipPratonton() {
           </div>
           <div style="margin-top:10px;background:#fef3c7;border-left:4px solid #f59e0b;
                padding:9px 12px;border-radius:6px;font-size:12px;color:#854d0e;">
-            Buang tanda pada topik yang anda <strong>tidak mahu</strong> dijana.
+            Buang tanda pada topik yang anda <strong>tidak mahu</strong> disentuh.
             Tarikh diagih automatik dalam tempoh, melangkau hujung minggu dan cuti.
           </div>
         </div>
-        <div style="overflow:auto;flex:1;padding:12px 22px;">
-          <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead><tr style="position:sticky;top:0;background:#f1f5f9;">
+        <div style="overflow:auto;flex:1;padding:12px 22px;">`;
+
+    if (ipTopikKosong.length) {
+        h += `
+          <div style="font-size:13px;font-weight:700;color:#0f766e;margin:4px 0 6px;">
+            ➕ TOPIK BAHARU — rekod akan dicipta (${ipTopikKosong.length})
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:18px;">
+            <thead><tr style="background:#f1f5f9;">
               <th style="padding:8px 4px;text-align:center;width:40px;">
                 <input type="checkbox" checked onchange="ipTandaSemua(this.checked)"></th>
               <th style="padding:8px 4px;text-align:left;width:70px;">KOD</th>
               <th style="padding:8px 4px;text-align:left;">TOPIK / SUBTOPIK</th>
             </tr></thead><tbody>`;
 
-    ipTopikKosong.forEach((t, i) => {
-        h += `<tr style="border-bottom:1px solid #f1f5f9;">
-            <td style="padding:6px 4px;text-align:center;">
-              <input type="checkbox" class="ip-pilih" data-i="${i}" ${t.pilih?'checked':''}
-                     onchange="ipTopikKosong[${i}].pilih=this.checked;ipKiraPilih()"></td>
-            <td style="padding:6px 4px;color:#64748b;font-weight:600;">${t.topik}</td>
-            <td style="padding:6px 4px;">${t.sub || t.main}</td>
-          </tr>`;
-    });
+        ipTopikKosong.forEach((t, i) => {
+            h += `<tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:6px 4px;text-align:center;">
+                  <input type="checkbox" class="ip-pilih" data-i="${i}" ${t.pilih?'checked':''}
+                         onchange="ipTopikKosong[${i}].pilih=this.checked;ipKiraPilih()"></td>
+                <td style="padding:6px 4px;color:#64748b;font-weight:600;">${t.topik}</td>
+                <td style="padding:6px 4px;">${t.sub || t.main}</td>
+              </tr>`;
+        });
+        h += `</tbody></table>`;
+    }
 
-    h += `</tbody></table></div>
+    if (ipTopikAda.length) {
+        h += `
+          <div style="font-size:13px;font-weight:700;color:#b91c1c;margin:4px 0 6px;">
+            ♻️ TULIS SEMULA — rekod sedia ada (${ipTopikAda.length})
+          </div>
+          <div style="background:#fee2e2;border-left:4px solid #dc2626;padding:9px 12px;
+               border-radius:6px;font-size:12px;color:#7f1d1d;margin-bottom:8px;">
+            Hanya <strong>TP</strong> ditukar. Tarikh, nama guru, aktiviti kelas dan
+            catatan murid dikekalkan. <strong>Tiada undo</strong> — TP lama hilang.
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr style="background:#f1f5f9;">
+              <th style="padding:8px 4px;text-align:center;width:40px;">
+                <input type="checkbox" onchange="ipTandaSemuaAda(this.checked)"></th>
+              <th style="padding:8px 4px;text-align:left;width:70px;">KOD</th>
+              <th style="padding:8px 4px;text-align:left;">TOPIK / SUBTOPIK</th>
+              <th style="padding:8px 4px;text-align:center;width:92px;">TARIKH</th>
+              <th style="padding:8px 4px;text-align:center;width:66px;">SUMBER</th>
+            </tr></thead><tbody>`;
+
+        ipTopikAda.forEach((t, i) => {
+            h += `<tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:6px 4px;text-align:center;">
+                  <input type="checkbox" class="ip-pilih-ada" data-i="${i}" ${t.pilih?'checked':''}
+                         onchange="ipTopikAda[${i}].pilih=this.checked;ipKiraPilih()"></td>
+                <td style="padding:6px 4px;color:#64748b;font-weight:600;">${t.topik}</td>
+                <td style="padding:6px 4px;">${t.sub || t.main}</td>
+                <td style="padding:6px 4px;text-align:center;color:#64748b;">${t.tarikh || '—'}</td>
+                <td style="padding:6px 4px;text-align:center;font-size:11px;">
+                  ${t.dijanaAuto
+                    ? '<span style="color:#0f766e;">auto</span>'
+                    : '<span style="color:#b91c1c;font-weight:700;">manual</span>'}</td>
+              </tr>`;
+        });
+        h += `</tbody></table>`;
+    }
+
+    h += `</div>
         <div style="padding:16px 22px;border-top:2px solid #e2e8f0;display:flex;gap:10px;
              justify-content:flex-end;align-items:center;">
           <span id="ip-kira" style="margin-right:auto;font-size:13px;color:#475569;"></span>
           <button class="form-control" style="width:auto;padding:8px 18px;cursor:pointer;"
                   onclick="ipPaparTP()">← Kembali</button>
           <button class="export-btn" style="padding:8px 20px;background:#0f766e;"
-                  onclick="ipSimpan()">✓ Jana Rekod</button>
+                  onclick="ipSimpan()">✓ Simpan</button>
         </div>
       </div>
     </div>`;
@@ -425,38 +510,74 @@ function ipTandaSemua(nilai) {
     ipKiraPilih();
 }
 
+function ipTandaSemuaAda(nilai) {
+    ipTopikAda.forEach((t, i) => {
+        t.pilih = nilai;
+        const c = document.querySelector('.ip-pilih-ada[data-i="' + i + '"]');
+        if (c) c.checked = nilai;
+    });
+    ipKiraPilih();
+}
+
 function ipKiraPilih() {
-    const n = ipTopikKosong.filter(t => t.pilih).length;
+    const baru  = ipTopikKosong.filter(t => t.pilih).length;
+    const tulis = ipTopikAda.filter(t => t.pilih).length;
     const el = document.getElementById('ip-kira');
-    if (el) {
-        el.innerHTML = n
-            ? `<strong>${n}</strong> topik × ${ipMuridSenarai.length} murid = ` +
-              `<strong>${n * ipMuridSenarai.length}</strong> isian`
-            : '<span style="color:#b45309;">Tiada topik dipilih</span>';
+    if (!el) return;
+
+    if (!baru && !tulis) {
+        el.innerHTML = '<span style="color:#b45309;">Tiada topik dipilih</span>';
+        return;
     }
+    const bhg = [];
+    if (baru)  bhg.push(`<strong>${baru}</strong> baharu`);
+    if (tulis) bhg.push(`<strong style="color:#b91c1c;">${tulis}</strong> tulis semula`);
+    el.innerHTML = bhg.join(' + ') +
+        ` &middot; ${(baru + tulis) * ipMuridSenarai.length} isian`;
 }
 
 // ── Simpan ───────────────────────────────────────────────────────────────────
 
 async function ipSimpan() {
     const pilih = ipTopikKosong.filter(t => t.pilih);
-    if (!pilih.length) { showToast('Pilih sekurang-kurangnya satu topik', 'warning'); return; }
+    const tulis = ipTopikAda.filter(t => t.pilih);
+    if (!pilih.length && !tulis.length) {
+        showToast('Pilih sekurang-kurangnya satu topik', 'warning'); return;
+    }
 
     const k = ipKonteks;
-    if (!confirm(
-        'JANA REKOD PBD\n\n' +
-        k.subjek + ' — ' + k.fullKelas + '\n' + k.label + '\n\n' +
-        pilih.length + ' topik × ' + ipMuridSenarai.length + ' murid\n\n' +
-        'Topik yang sudah ada rekod tidak disentuh.\n' +
-        'Rekod yang dijana boleh dibuang semula.\n\nTeruskan?')) return;
+    const manual = tulis.filter(t => !t.dijanaAuto).length;
 
-    showLoading('Menjana ' + pilih.length + ' rekod...');
+    /* Dialog pengesahan ialah satu-satunya pagar sebelum menimpa TP rasmi.
+       Jangan longgarkan — tulis semula TIADA undo. */
+    let msg = 'SIMPAN REKOD PBD\n\n' +
+        k.subjek + ' — ' + k.fullKelas + '\n' + k.label + '\n\n';
+    if (pilih.length) msg += '➕ CIPTA BAHARU: ' + pilih.length + ' topik\n';
+    if (tulis.length) {
+        msg += '♻️ TULIS SEMULA: ' + tulis.length + ' topik\n' +
+               '   TP lama akan HILANG — tiada undo.\n';
+        if (manual) msg += '   ⚠️ ' + manual + ' daripadanya dimasuk MANUAL, bukan dijana.\n';
+    }
+    msg += '\n' + ipMuridSenarai.length + ' murid setiap topik\n\nTeruskan?';
+    if (!confirm(msg)) return;
+
+    // Pengesahan kedua bagi rekod manual — risiko tertinggi
+    if (manual && !confirm(
+        'PENGESAHAN KEDUA\n\n' + manual + ' rekod yang anda tanda dimasukkan ' +
+        'secara MANUAL oleh guru di skrin Rekod, bukan dijana automatik.\n\n' +
+        'TP asal akan ditimpa dan tidak boleh dikembalikan.\n\nSahkan?')) return;
+
+    showLoading('Menyimpan...');
     try {
-        const cfg = await firestoreRetry(() =>
-            db.collection('config').doc('system_settings').get());
-        let lastId = (cfg.data().lastRekodId || 0);
-
-        const tarikhSenarai = ipAgihTarikh(k.penilaian, pilih.length);
+        // Config + agihan tarikh hanya diperlukan untuk rekod BAHARU
+        let lastId = 0;
+        let tarikhSenarai = [];
+        if (pilih.length) {
+            const cfg = await firestoreRetry(() =>
+                db.collection('config').doc('system_settings').get());
+            lastId = (cfg.data().lastRekodId || 0);
+            tarikhSenarai = ipAgihTarikh(k.penilaian, pilih.length);
+        }
         const namaGuru = (document.getElementById('inputNamaGuru') || {}).value || '';
         const kumpulanId = 'IP' + Date.now();   // penanda kumpulan untuk buang semula
 
@@ -469,6 +590,10 @@ async function ipSimpan() {
             catatan: ''
         }));
         const totalM = muridArr.filter(m => m.penguasaan === 'Menguasai').length;
+
+        // Peta No. KP → TP untuk tulis semula (padanan ikut KP, bukan susunan)
+        const tpIkutKp = {};
+        ipMuridSenarai.forEach(m => { if (m.noKp) tpIkutKp[m.noKp] = m.tp; });
 
         // Tulis berkelompok — 500 ialah had satu batch Firestore
         let siap = 0;
@@ -515,12 +640,63 @@ async function ipSimpan() {
             showLoading('Menjana... ' + siap + '/' + pilih.length);
         }
 
-        await db.collection('config').doc('system_settings')
-            .update({ lastRekodId: lastId });
+        if (pilih.length) {
+            await db.collection('config').doc('system_settings')
+                .update({ lastRekodId: lastId });
+        }
+
+        // ── Tulis semula: TP sahaja, medan lain dikekalkan ───────────────────
+        let ditulis = 0;
+        for (let i = 0; i < tulis.length; i += 100) {
+            const kepingan = tulis.slice(i, i + 100);
+
+            /* Baca setiap rekod dahulu — array `murid` mungkin mengandungi
+               catatan guru dan susunan yang berbeza daripada senarai semasa.
+               Padan ikut No. KP, kekalkan catatan, tukar TP sahaja. */
+            const docs = await Promise.all(kepingan.map(t =>
+                firestoreRetry(() => db.collection('rekod_pbd').doc(t.docId).get())));
+
+            const batch = db.batch();
+            let dalamBatch = 0;
+
+            docs.forEach((d, j) => {
+                if (!d.exists) return;
+                const r = d.data();
+                const muridLama = r.murid || [];
+
+                const muridBaru = muridLama.map(m => {
+                    const tpBaru = tpIkutKp[m.noKp];
+                    if (tpBaru === undefined) return m;   // murid tiada dalam senarai — jangan sentuh
+                    return Object.assign({}, m, {
+                        tp: tpBaru,
+                        penguasaan: tpBaru >= 3 ? 'Menguasai' : 'Belum Menguasai'
+                    });
+                });
+
+                const nM = muridBaru.filter(m => m.penguasaan === 'Menguasai').length;
+                batch.update(d.ref, {
+                    murid: muridBaru,
+                    jumlah_murid: muridBaru.length,
+                    jumlah_menguasai: nM,
+                    jumlah_belum_menguasai: muridBaru.length - nM,
+                    ditulis_semula: true,
+                    ditulis_semula_pada: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                dalamBatch += 1;
+            });
+
+            if (dalamBatch) await batch.commit();
+            ditulis += dalamBatch;
+            showLoading('Menulis semula... ' + ditulis + '/' + tulis.length);
+        }
 
         hideLoading();
         ipTutup();
-        showToast('✅ ' + pilih.length + ' rekod dijana. Semak di tab Keputusan Kelas.', 'success');
+        const lapor = [];
+        if (pilih.length) lapor.push(pilih.length + ' dijana');
+        if (ditulis)      lapor.push(ditulis + ' ditulis semula');
+        showToast('✅ ' + lapor.join(' · ') + '. Semak di tab Keputusan Kelas.', 'success');
 
     } catch(e) {
         hideLoading();
