@@ -707,45 +707,176 @@ async function ipSimpan() {
 
 // ── Buang semula rekod yang dijana ───────────────────────────────────────────
 
-async function ipBuangJanaan() {
-    const subjek = prompt('Buang rekod yang DIJANA AUTO sahaja.\n\nSubjek (kosongkan = semua):', '');
-    if (subjek === null) return;
+let ipKumpulan = [];   // [{id, n, subjek, kelas, tahun, masa, tarikhAwal, tarikhAkhir}]
 
+/* Rekod dikumpulkan ikut `dijana_kumpulan` (IP<timestamp>) — satu kumpulan
+   ialah satu kali tekan "Jana". Guru memilih kumpulan tertentu, bukan menaip
+   nama subjek: menaip membenarkan salah eja, dan medan kosong dahulu
+   bermakna "padam janaan SEMUA subjek semua kelas" — terlalu mudah tersilap. */
+async function ipBuangJanaan() {
     showLoading('Mencari rekod dijana...');
     try {
-        let q = db.collection('rekod_pbd').where('dijana_auto','==',true);
-        if (subjek) q = q.where('subjek','==',subjek);
-        const snap = await firestoreRetry(() => q.get());
+        const snap = await firestoreRetry(() =>
+            db.collection('rekod_pbd').where('dijana_auto','==',true).get());
 
-        if (snap.empty) { hideLoading(); showToast('Tiada rekod dijana dijumpai', 'warning'); return; }
+        if (snap.empty) {
+            hideLoading();
+            showToast('Tiada rekod dijana dijumpai', 'warning');
+            return;
+        }
 
-        const senarai = [];
-        snap.forEach(d => senarai.push({ id: d.id, ...d.data() }));
-        hideLoading();
-
-        const ringkas = {};
-        senarai.forEach(r => {
-            const key = r.subjek + ' — ' + r.kelas;
-            ringkas[key] = (ringkas[key] || 0) + 1;
+        const kump = {};
+        snap.forEach(d => {
+            const r = d.data();
+            const g = r.dijana_kumpulan || '(lama)';
+            if (!kump[g]) {
+                kump[g] = { id: g, n: 0, ids: [],
+                            subjek: r.subjek || '—', kelas: r.kelas || '—',
+                            tahun: r.tahun || '', tarikhAwal: '', tarikhAkhir: '' };
+            }
+            const k = kump[g];
+            k.n += 1;
+            k.ids.push(d.id);
+            const ts = r.tarikh_string || '';
+            if (ts) {
+                if (!k.tarikhAwal  || ts < k.tarikhAwal)  k.tarikhAwal  = ts;
+                if (!k.tarikhAkhir || ts > k.tarikhAkhir) k.tarikhAkhir = ts;
+            }
         });
 
-        if (!confirm(
-            'BUANG REKOD DIJANA AUTO\n\n' +
-            Object.entries(ringkas).map(([k,v]) => k + ': ' + v).join('\n') +
-            '\n\nJumlah: ' + senarai.length + ' rekod\n\n' +
-            'Rekod yang guru isi sendiri TIDAK disentuh.\n\nBuang?')) return;
+        // Masa janaan dibaca terus dari ID (IP<millis>) — tiada bacaan tambahan
+        ipKumpulan = Object.values(kump).map(k => {
+            const ms = parseInt(String(k.id).replace('IP',''), 10);
+            k.masa = isNaN(ms) ? '—' : new Date(ms).toLocaleString('ms-MY',
+                { day:'2-digit', month:'short', year:'numeric',
+                  hour:'2-digit', minute:'2-digit' });
+            k.ms = isNaN(ms) ? 0 : ms;
+            k.pilih = false;
+            return k;
+        }).sort((a,b) => b.ms - a.ms);   // terbaharu di atas
 
-        showLoading('Membuang ' + senarai.length + ' rekod...');
-        for (let i = 0; i < senarai.length; i += 100) {
+        hideLoading();
+        ipPaparKumpulan();
+
+    } catch(e) {
+        hideLoading();
+        console.error(e);
+        showToast('Ralat: ' + e.message, 'error');
+    }
+}
+
+function ipPaparKumpulan() {
+    ipTutup();
+
+    /* Kumpulan yang berkongsi subjek+kelas+tahun ialah tanda janaan berganda
+       (tersilap tekan dua kali) — ditandakan supaya guru nampak. */
+    const kira = {};
+    ipKumpulan.forEach(k => {
+        const kunci = k.subjek + '|' + k.kelas;
+        kira[kunci] = (kira[kunci] || 0) + 1;
+    });
+
+    let h = `
+    <div id="ip-overlay" style="position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;
+         display:flex;align-items:center;justify-content:center;padding:20px;"
+         onclick="if(event.target===this)ipTutup()">
+      <div style="background:#fff;border-radius:14px;max-width:760px;width:100%;max-height:88vh;
+           display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);">
+        <div style="padding:18px 22px;border-bottom:2px solid #e2e8f0;">
+          <h3 style="margin:0;font-size:18px;color:#0f172a;">🗑️ Buang Janaan</h3>
+          <div style="margin-top:6px;font-size:13px;color:#475569;">
+            Setiap baris ialah satu kali tekan &ldquo;Jana&rdquo;.
+            Tanda yang mana anda mahu buang.
+          </div>
+          <div style="margin-top:10px;background:#fee2e2;border-left:4px solid #dc2626;
+               padding:9px 12px;border-radius:6px;font-size:12px;color:#7f1d1d;">
+            Padam adalah <strong>kekal</strong> — tiada undo.
+            Rekod yang guru isi sendiri tidak pernah disenaraikan di sini.
+          </div>
+        </div>
+        <div style="overflow:auto;flex:1;padding:12px 22px;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr style="position:sticky;top:0;background:#f1f5f9;">
+              <th style="padding:8px 4px;text-align:center;width:40px;"></th>
+              <th style="padding:8px 4px;text-align:left;">SUBJEK / KELAS</th>
+              <th style="padding:8px 4px;text-align:left;width:150px;">MASA JANA</th>
+              <th style="padding:8px 4px;text-align:center;width:66px;">REKOD</th>
+            </tr></thead><tbody>`;
+
+    ipKumpulan.forEach((k, i) => {
+        const berganda = kira[k.subjek + '|' + k.kelas] > 1;
+        h += `<tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:7px 4px;text-align:center;">
+              <input type="checkbox" class="ip-kump" data-i="${i}"
+                     onchange="ipKumpulan[${i}].pilih=this.checked;ipKiraKumpulan()"></td>
+            <td style="padding:7px 4px;">
+              <div style="font-weight:600;color:#0f172a;">${k.subjek}</div>
+              <div style="font-size:12px;color:#64748b;">${k.kelas}
+                ${berganda ? '<span style="color:#b45309;font-weight:700;"> &middot; ⚠️ berganda</span>' : ''}
+              </div>
+            </td>
+            <td style="padding:7px 4px;color:#475569;font-size:12px;">${k.masa}</td>
+            <td style="padding:7px 4px;text-align:center;font-weight:700;color:#0f172a;">${k.n}</td>
+          </tr>`;
+    });
+
+    h += `</tbody></table></div>
+        <div style="padding:16px 22px;border-top:2px solid #e2e8f0;display:flex;gap:10px;
+             justify-content:flex-end;align-items:center;">
+          <span id="ip-kira-kump" style="margin-right:auto;font-size:13px;color:#475569;"></span>
+          <button class="form-control" style="width:auto;padding:8px 18px;cursor:pointer;"
+                  onclick="ipTutup()">Batal</button>
+          <button class="export-btn" style="padding:8px 20px;background:#b91c1c;"
+                  onclick="ipBuangPilihan()">🗑️ Buang</button>
+        </div>
+      </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', h);
+    ipKiraKumpulan();
+}
+
+function ipKiraKumpulan() {
+    const dipilih = ipKumpulan.filter(k => k.pilih);
+    const rekod = dipilih.reduce((a,k) => a + k.n, 0);
+    const el = document.getElementById('ip-kira-kump');
+    if (!el) return;
+    el.innerHTML = dipilih.length
+        ? `<strong>${dipilih.length}</strong> janaan &middot; ` +
+          `<strong style="color:#b91c1c;">${rekod}</strong> rekod akan dibuang`
+        : '<span style="color:#94a3b8;">Tiada janaan ditanda</span>';
+}
+
+async function ipBuangPilihan() {
+    const dipilih = ipKumpulan.filter(k => k.pilih);
+    if (!dipilih.length) { showToast('Tanda sekurang-kurangnya satu janaan', 'warning'); return; }
+
+    const jumlah = dipilih.reduce((a,k) => a + k.n, 0);
+    if (!confirm(
+        'BUANG REKOD DIJANA\n\n' +
+        dipilih.map(k => '• ' + k.subjek + ' — ' + k.kelas +
+                         ' (' + k.masa + '): ' + k.n + ' rekod').join('\n') +
+        '\n\nJumlah: ' + jumlah + ' rekod\n\n' +
+        'Padam adalah KEKAL — tiada undo.\n' +
+        'Rekod yang guru isi sendiri TIDAK disentuh.\n\nBuang?')) return;
+
+    showLoading('Membuang ' + jumlah + ' rekod...');
+    try {
+        const semua = [];
+        dipilih.forEach(k => k.ids.forEach(id => semua.push(id)));
+
+        let siap = 0;
+        for (let i = 0; i < semua.length; i += 100) {
             const batch = db.batch();
-            senarai.slice(i, i + 100).forEach(r =>
-                batch.delete(db.collection('rekod_pbd').doc(r.id)));
+            semua.slice(i, i + 100).forEach(id =>
+                batch.delete(db.collection('rekod_pbd').doc(id)));
             await batch.commit();
-            showLoading('Membuang... ' + Math.min(i + 100, senarai.length) + '/' + senarai.length);
+            siap = Math.min(i + 100, semua.length);
+            showLoading('Membuang... ' + siap + '/' + semua.length);
         }
 
         hideLoading();
-        showToast('✅ ' + senarai.length + ' rekod dijana telah dibuang', 'success');
+        ipTutup();
+        showToast('✅ ' + semua.length + ' rekod dibuang', 'success');
 
     } catch(e) {
         hideLoading();

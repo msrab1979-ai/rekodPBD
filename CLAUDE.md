@@ -176,7 +176,20 @@ Satu subjek satu darjah boleh ada 40+ subtopik: 40 topik × 33 murid = 1,320
 kemasukan manual, menjadi 33 klik.
 
 - Pratonton memaparkan setiap topik; guru boleh buang mana-mana
-- Setiap rekod ditanda `dijana_auto` + `dijana_kumpulan` → butang "Buang janaan"
+- Setiap rekod ditanda `dijana_auto` + `dijana_kumpulan` → ikon 🗑️ "Buang janaan"
+
+## Buang janaan — senarai kumpulan
+
+Ikon 🗑️ sebelah ⚡ (juga tanpa teks). Rekod dikumpulkan ikut `dijana_kumpulan`
+(`IP<millis>`) — satu kumpulan = satu kali tekan "Jana". Masa dibaca terus dari
+ID, tiada bacaan tambahan. Guru menanda kumpulan; terbaharu di atas.
+
+Kumpulan yang berkongsi subjek+kelas ditanda **⚠️ berganda** — itu tanda
+tersilap tekan Jana dua kali.
+
+Dahulu ia `prompt()` meminta nama subjek, dan medan kosong bermakna "padam
+janaan SEMUA subjek semua kelas". Jangan kembali ke corak itu: salah eja
+senyap, dan satu Enter memusnahkan janaan yang sah.
 - Tarikh diagih merentasi tempoh, melangkau hujung minggu (Terengganu: Jumaat–
   Sabtu) dan cuti; tidak pernah melepasi hari ini
 - Cadangan TP diambil daripada purata rekod sedia ada murid
