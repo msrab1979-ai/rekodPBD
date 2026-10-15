@@ -207,6 +207,7 @@
                     </select>
                 </div>
                 <button class="export-btn" onclick="kptExportPDF()">📄 Export PDF</button>
+                <button class="export-btn" style="background:#0f766e;" onclick="kptBukaPratontonSPPB()">📋 Salin untuk SPPB</button>
             </div>
             <div id="kpt-content">
                 <div style="text-align:center;padding:60px;color:#999;">
@@ -214,6 +215,22 @@
                     <p>Pilih subjek, tahun darjah dan kelas untuk melihat keputusan</p>
                 </div>
             </div>
+        </div>
+
+        <!-- Isi Pantas PBD — menjana rekod bagi topik yang masih kosong -->
+        <div style="margin-top:30px;padding-top:20px;border-top:1px solid var(--border);">
+            <button onclick="ipBuka()" class="analisa-tab" style="border-color:#0f766e;color:#0f766e;"
+                    title="Jana rekod PBD bagi topik yang belum diisi — guru tetapkan TP sekali bagi setiap murid">
+                ⚡ Isi Pantas PBD
+            </button>
+            <span style="margin-left:10px;font-size:12px;color:#94a3b8;">
+                Jana rekod bagi topik yang masih kosong
+            </span>
+            <button onclick="ipBuangJanaan()" class="analisa-tab"
+                    style="border-color:#e2e8f0;color:#94a3b8;font-size:12px;padding:8px 14px;margin-left:10px;"
+                    title="Buang rekod yang dijana auto sahaja — rekod yang diisi sendiri tidak disentuh">
+                Buang janaan
+            </button>
         </div>
 
     </div><!-- end content-container -->
@@ -248,5 +265,6 @@
 
     <script src="js/firebase-config.js"></script>
     <script src="js/analisa.js"></script>
+    <script src="js/isipantas.js"></script>
 </body>
 </html>

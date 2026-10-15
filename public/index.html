@@ -85,11 +85,32 @@
             transform: scale(1.1);
             box-shadow: 0 6px 30px rgba(220, 38, 38, 0.6);
         }
+        /* Butang terapung PBD HELPER — di atas butang ADMIN, warna berbeza
+           supaya mudah dibeza sepintas lalu. */
+        .helper-btn {
+            position: fixed;
+            bottom: 95px;
+            right: 30px;
+            background: #0f766e;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: 0 4px 20px rgba(15, 118, 110, 0.4);
+            transition: all 0.3s;
+            z-index: 100;
+        }
+        .helper-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 30px rgba(15, 118, 110, 0.6);
+        }
         @media (max-width: 768px) {
             .hero-section h1 { font-size: 24px; }
             .hero-section p { font-size: 16px; }
             .menu-grid { grid-template-columns: 1fr; gap: 20px; }
             .admin-btn { bottom: 20px; right: 20px; padding: 12px 20px; font-size: 14px; }
+            .helper-btn { bottom: 76px; right: 20px; padding: 12px 20px; font-size: 14px; }
         }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -157,6 +178,7 @@
 
     </div>
 
+    <a href="helper-pbd.html" class="helper-btn" title="Panduan memasang PBD HELPER — hantar TP, Ulasan Guru dan Usaha Murid terus ke SPPB">🔗 PBD HELPER</a>
     <a href="admin.html" class="admin-btn">⚙️ ADMIN</a>
 
     <footer style="text-align: center; padding: 30px 20px; color: var(--text-light); margin-top: 50px; border-top: 1px solid var(--border);">

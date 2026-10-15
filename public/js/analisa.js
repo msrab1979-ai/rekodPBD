@@ -1093,6 +1093,39 @@ async function kptLoadData() {
     }
 }
 
+// Purata TP seorang murid: hanya topik yang murid BENAR-BENAR dinilai dikira.
+// tpArr[i] === 0 bermaksud murid tiada rekod untuk topik itu — bukan TP 0.
+// Mengira 0 dalam pembahagi menurunkan purata sehingga satu tahap penuh
+// (cth 4,5,4 daripada 5 topik: 13/5 = 2.60 → TP3, sepatutnya 13/3 = 4.33 → TP4).
+// Angka ini ditampal ke rekod rasmi KPM melalui helper SPPB — mesti tepat.
+function kptPurataMurid(m) {
+    const dinilai = m.tpArr.filter(tp => tp > 0);
+    if (!dinilai.length) return null;          // langsung tidak dinilai
+    return dinilai.reduce((a,b) => a+b, 0) / dinilai.length;
+}
+
+// Purata → TP SPPB (1–6). Pembundaran standard: 4.50 → TP5, 4.49 → TP4.
+function kptPurataKeTP(avg) {
+    if (avg === null || avg === undefined) return null;
+    return Math.min(6, Math.max(1, Math.round(avg)));
+}
+
+// Pilihan sebenar di SPPB (dibaca terus dari borang, jangan ubah ejaan)
+const SPPB_ULASAN = ['CEMERLANG', 'SEDERHANA', 'LEMAH'];
+const SPPB_USAHA  = ['SANGAT TINGGI', 'TINGGI', 'SEDERHANA', 'RENDAH'];
+
+// Peta lalai TP → Ulasan Guru / Usaha Murid.
+// TP3 ke atas dikira sudah menguasai, selaras konvensyen KPM.
+// Ini hanya CADANGAN — setiap nilai boleh diubah guru dalam pratonton.
+function kptTPKeUlasan(tp) {
+    if (!tp) return null;
+    return tp >= 3 ? 'CEMERLANG' : 'SEDERHANA';
+}
+function kptTPKeUsaha(tp) {
+    if (!tp) return null;
+    return tp >= 3 ? 'SANGAT TINGGI' : 'TINGGI';
+}
+
 function kptRenderJadual(subjek, kelas, penilaian) {
     const muridList = Object.values(kptMuridMap).sort((a,b) => a.nama.localeCompare(b.nama));
     const n = kptTopikList.length;
@@ -1100,15 +1133,9 @@ function kptRenderJadual(subjek, kelas, penilaian) {
                       : penilaian === 'P2' ? 'Penilaian 2 (Jun–Okt)' : 'Semua Tempoh';
 
     // ── Summary cards ─────────────────────────────────────────
-    const allAvg = muridList.map(m => {
-        const jumlah = m.tpArr.reduce((a,b) => a+b, 0);
-        return jumlah / n;
-    });
+    const allAvg = muridList.map(kptPurataMurid).filter(a => a !== null);
     const kelasAvg = allAvg.length ? (allAvg.reduce((a,b)=>a+b,0)/allAvg.length).toFixed(2) : 0;
-    const menguasai = muridList.filter(m => {
-        const avg = m.tpArr.reduce((a,b)=>a+b,0)/n;
-        return avg >= 4;
-    }).length;
+    const menguasai = allAvg.filter(avg => avg >= 4).length;
 
     let html = `
     <div style="margin-bottom:18px;">
@@ -1152,28 +1179,38 @@ function kptRenderJadual(subjek, kelas, penilaian) {
             + '</th>';
     });
     html += '<th style="min-width:80px;background:#1e3a8a;">PURATA TP</th>';
+    html += '<th style="min-width:80px;background:#0f766e;" title="Purata dibulatkan — nilai yang akan ditampal ke SPPB">TP SPPB</th>';
     html += '<th style="min-width:90px;background:#1e3a8a;">STATUS</th></tr></thead>';
 
     // Badan jadual
     html += '<tbody>';
     muridList.forEach((m, idx) => {
-        const jumlah = m.tpArr.reduce((a,b) => a+b, 0);
-        const avg    = jumlah / n;
-        const avgStr = avg.toFixed(2);
-        const colorClass = getTPColorClass(avg);
-        const status = avg >= 5 ? '🟢 Cemerlang' : avg >= 4 ? '🟡 Baik' : avg >= 3 ? '🟠 Sederhana' : '🔴 Lemah';
+        const avg    = kptPurataMurid(m);
+        const avgStr = avg === null ? '—' : avg.toFixed(2);
+        const tpSppb = kptPurataKeTP(avg);
+        const colorClass = avg === null ? '' : getTPColorClass(avg);
+        const status = avg === null ? '⚪ Tiada rekod'
+                     : avg >= 5 ? '🟢 Cemerlang' : avg >= 4 ? '🟡 Baik'
+                     : avg >= 3 ? '🟠 Sederhana' : '🔴 Lemah';
+        // Tanda baris sempadan (.45–.55) — di situ pertimbangan guru paling penting
+        const sempadan = avg !== null && Math.abs(avg - Math.floor(avg) - 0.5) <= 0.05;
 
         html += '<tr>';
         html += '<td style="text-align:center;color:#94a3b8;font-weight:700;">' + (idx+1) + '</td>';
         html += '<td style="text-align:left;font-weight:600;">' + m.nama + '</td>';
 
         m.tpArr.forEach(tp => {
-            const cls = tp === 0 ? 'tp-red' : tp <= 2 ? 'tp-red' : tp === 3 ? 'tp-orange'
+            const cls = tp === 0 ? '' : tp <= 2 ? 'tp-red' : tp === 3 ? 'tp-orange'
                       : tp === 4 ? 'tp-yellow' : tp === 5 ? 'tp-lightgreen' : 'tp-green';
-            html += '<td class="' + cls + '" style="text-align:center;font-weight:700;">' + (tp === 0 ? '—' : tp) + '</td>';
+            const sty = tp === 0 ? 'text-align:center;color:#cbd5e1;' : 'text-align:center;font-weight:700;';
+            html += '<td class="' + cls + '" style="' + sty + '">' + (tp === 0 ? '—' : tp) + '</td>';
         });
 
         html += '<td class="' + colorClass + '" style="text-align:center;font-weight:800;font-size:15px;">' + avgStr + '</td>';
+        html += '<td style="text-align:center;font-weight:800;font-size:15px;color:#1e3a8a;'
+              + (sempadan ? 'background:#fef3c7;' : '') + '" title="'
+              + (sempadan ? 'Sempadan — sila semak' : 'Untuk SPPB') + '">'
+              + (tpSppb === null ? '—' : 'TP' + tpSppb) + (sempadan ? ' ⚠️' : '') + '</td>';
         html += '<td style="text-align:center;font-size:12px;">' + status + '</td>';
         html += '</tr>';
     });
@@ -1182,11 +1219,12 @@ function kptRenderJadual(subjek, kelas, penilaian) {
     html += '<tr style="background:#1e3a8a;color:white;font-weight:700;">';
     html += '<td colspan="2" style="text-align:center;padding:8px;">PURATA KELAS</td>';
     kptTopikList.forEach((t, i) => {
-        const tpValues = muridList.map(m => m.tpArr[i]);
+        // Hanya murid yang dinilai untuk topik ini dikira — sama prinsip dengan purata murid
+        const tpValues = muridList.map(m => m.tpArr[i]).filter(tp => tp > 0);
         const avg = tpValues.length ? (tpValues.reduce((a,b)=>a+b,0)/tpValues.length).toFixed(1) : '—';
         html += '<td style="text-align:center;">' + avg + '</td>';
     });
-    html += '<td colspan="2" style="text-align:center;">' + kelasAvg + '</td>';
+    html += '<td colspan="3" style="text-align:center;">' + kelasAvg + '</td>';
     html += '</tr>';
 
     html += '</tbody></table></div>';
@@ -1205,6 +1243,239 @@ function kptRenderJadual(subjek, kelas, penilaian) {
     document.getElementById('kpt-content').innerHTML = html;
 }
 
+// ============================================================================
+// SALIN UNTUK SPPB  (pasangan kepada bookmarklet helper-pbd/tampal-pbd.js)
+// ----------------------------------------------------------------------------
+// Guru buka pratonton, semak/ubah TP, kemudian salin JSON ke papan klip.
+// Bookmarklet di moeissppb.moe.gov.my yang mengisi butang radio TP1–TP6.
+// KUNCI PADANAN: noKp — bukan nama, bukan susunan baris.
+// ============================================================================
+
+let sppbPratontonData = null;   // { konteks, murid:[{noKp,nama,purata,tp}] }
+
+function kptBukaPratontonSPPB() {
+    const subjek    = document.getElementById('kpt-subjek').value;
+    const tahun     = document.getElementById('kpt-tahun').value;
+    const kelas     = document.getElementById('kpt-kelas').value;
+    const penilaian = document.getElementById('kpt-penilaian').value;
+
+    if (!subjek || !kelas || !Object.keys(kptMuridMap).length) {
+        showToast('Sila muatkan data dahulu', 'warning'); return;
+    }
+
+    const muridList = Object.values(kptMuridMap).sort((a,b) => a.nama.localeCompare(b.nama));
+    const tempohLabel = penilaian === 'P1' ? 'Penilaian 1 (Jan–Mei)'
+                      : penilaian === 'P2' ? 'Penilaian 2 (Jun–Okt)' : 'Semua Tempoh';
+
+    sppbPratontonData = {
+        konteks: { subjek, tahun, kelas, tempoh: tempohLabel, bilTopik: kptTopikList.length },
+        isiTP: true, isiUsaha: true, isiUlasan: true,
+        murid: muridList.map(m => {
+            const avg = kptPurataMurid(m);
+            const tp  = kptPurataKeTP(avg);
+            return {
+                noKp: m.noKp,
+                nama: m.nama,
+                purata: avg === null ? null : Number(avg.toFixed(2)),
+                bilDinilai: m.tpArr.filter(x => x > 0).length,
+                tp: tp,
+                ulasan: kptTPKeUlasan(tp),
+                usaha: kptTPKeUsaha(tp)
+            };
+        })
+    };
+
+    const adaTP = sppbPratontonData.murid.filter(m => m.tp !== null).length;
+    const tiada = sppbPratontonData.murid.length - adaTP;
+
+    let h = `
+    <div id="sppb-overlay" style="position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;
+         display:flex;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)kptTutupPratonton()">
+      <div style="background:#fff;border-radius:14px;max-width:980px;width:100%;max-height:88vh;
+           display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);">
+        <div style="padding:18px 22px;border-bottom:2px solid #e2e8f0;">
+          <h3 style="margin:0;font-size:18px;color:#0f172a;">📋 Salin untuk SPPB</h3>
+          <div style="margin-top:6px;font-size:13px;color:#475569;">
+            <strong>${subjek}</strong> &middot; ${kelas} &middot; ${tempohLabel}
+            &middot; ${kptTopikList.length} topik
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:#64748b;">
+            Purata dibulatkan kepada TP terhampir (4.50 → TP5). Hanya topik yang murid
+            benar-benar dinilai dikira. Anda boleh ubah mana-mana nilai di bawah.
+          </div>
+          <div style="margin-top:10px;background:#fef2f2;border-left:4px solid #dc2626;
+               padding:9px 12px;border-radius:6px;font-size:12px;color:#991b1b;">
+            <strong>PENTING — tiada undo.</strong> SPPB menyimpan setiap nilai sebaik sahaja
+            ia diisi, tanpa menunggu butang Simpan. Pastikan senarai di bawah betul
+            sebelum menampal.
+          </div>
+          <div style="margin-top:8px;background:#f8fafc;border:1px solid #e2e8f0;
+               padding:9px 12px;border-radius:6px;font-size:12px;color:#475569;">
+            <strong>Ulasan Guru dan Usaha Murid dicadang dari TP</strong>
+            (TP3–TP6 → CEMERLANG / SANGAT TINGGI &nbsp;·&nbsp; TP1–TP2 → SEDERHANA / TINGGI).
+            Usaha murid tidak semestinya sama dengan pencapaian — sila ubah bagi murid
+            yang usahanya berbeza.
+          </div>
+          <div style="margin-top:10px;display:flex;gap:16px;flex-wrap:wrap;font-size:13px;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" id="sppb-isi-tp" checked
+                     onchange="sppbPratontonData.isiTP=this.checked;kptKiraRingkasan()"> Isi Tahap Penguasaan
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" id="sppb-isi-usaha" checked
+                     onchange="sppbPratontonData.isiUsaha=this.checked;kptKiraRingkasan()"> Isi Usaha Murid
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" id="sppb-isi-ulasan" checked
+                     onchange="sppbPratontonData.isiUlasan=this.checked;kptKiraRingkasan()"> Isi Ulasan Guru
+            </label>
+          </div>
+          ${tiada ? `<div style="margin-top:8px;background:#fef3c7;border-left:4px solid #f59e0b;
+             padding:8px 12px;border-radius:6px;font-size:12px;color:#854d0e;">
+             ${tiada} murid tiada sebarang rekod — akan dilangkau.</div>` : ''}
+        </div>
+        <div style="overflow:auto;flex:1;padding:0 22px;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr style="position:sticky;top:0;background:#f1f5f9;">
+              <th style="padding:8px 4px;text-align:center;width:34px;">#</th>
+              <th style="padding:8px 4px;text-align:left;">NAMA</th>
+              <th style="padding:8px 4px;text-align:center;width:66px;">DINILAI</th>
+              <th style="padding:8px 4px;text-align:center;width:66px;">PURATA</th>
+              <th style="padding:8px 4px;text-align:center;width:88px;">TP</th>
+              <th style="padding:8px 4px;text-align:center;width:128px;">USAHA MURID</th>
+              <th style="padding:8px 4px;text-align:center;width:122px;">ULASAN GURU</th>
+            </tr></thead><tbody>`;
+
+    sppbPratontonData.murid.forEach((m, i) => {
+        const sempadan = m.purata !== null && Math.abs(m.purata - Math.floor(m.purata) - 0.5) <= 0.05;
+        h += `<tr style="border-bottom:1px solid #f1f5f9;${sempadan?'background:#fffbeb;':''}">
+            <td style="padding:6px 4px;text-align:center;color:#94a3b8;">${i+1}</td>
+            <td style="padding:6px 4px;font-weight:600;">${m.nama}${sempadan?' <span title="Sempadan — sila semak">⚠️</span>':''}</td>
+            <td style="padding:6px 4px;text-align:center;color:#64748b;">${m.bilDinilai}/${kptTopikList.length}</td>
+            <td style="padding:6px 4px;text-align:center;font-weight:700;">${m.purata===null?'—':m.purata.toFixed(2)}</td>
+            <td style="padding:6px 4px;text-align:center;">`;
+        if (m.tp === null) {
+            h += '<span style="color:#94a3b8;">tiada rekod</span></td>'
+               + '<td style="padding:6px 4px;text-align:center;color:#94a3b8;">—</td>'
+               + '<td style="padding:6px 4px;text-align:center;color:#94a3b8;">—</td>';
+        } else {
+            // Mengubah TP mengira semula Usaha + Ulasan, melainkan guru sudah ubah sendiri
+            h += `<select class="form-control" id="sppb-tp-${i}" style="padding:3px 6px;font-size:13px;font-weight:700;"
+                   onchange="kptTukarTP(${i}, this.value)">`;
+            for (let v = 1; v <= 6; v++) h += `<option value="${v}"${v===m.tp?' selected':''}>TP${v}</option>`;
+            h += '</select></td>';
+
+            h += `<td style="padding:6px 4px;text-align:center;">
+                  <select class="form-control" id="sppb-usaha-${i}" style="padding:3px 4px;font-size:12px;"
+                   onchange="sppbPratontonData.murid[${i}].usaha=this.value;sppbPratontonData.murid[${i}].usahaManual=true">`;
+            SPPB_USAHA.forEach(v => { h += `<option value="${v}"${v===m.usaha?' selected':''}>${v}</option>`; });
+            h += '</select></td>';
+
+            h += `<td style="padding:6px 4px;text-align:center;">
+                  <select class="form-control" id="sppb-ulasan-${i}" style="padding:3px 4px;font-size:12px;"
+                   onchange="sppbPratontonData.murid[${i}].ulasan=this.value;sppbPratontonData.murid[${i}].ulasanManual=true">`;
+            SPPB_ULASAN.forEach(v => { h += `<option value="${v}"${v===m.ulasan?' selected':''}>${v}</option>`; });
+            h += '</select></td>';
+        }
+        h += '</tr>';
+    });
+
+    h += `</tbody></table></div>
+        <div style="padding:16px 22px;border-top:2px solid #e2e8f0;display:flex;gap:10px;
+             justify-content:flex-end;align-items:center;">
+          <span style="margin-right:auto;font-size:13px;color:#475569;">
+            <span id="sppb-ringkasan"><strong>${adaTP}</strong> murid &middot; TP + Usaha + Ulasan</span>
+            &nbsp;·&nbsp;
+            <a href="helper-pbd.html" target="_blank" style="color:#0f766e;">Panduan pemasangan</a>
+          </span>
+          <button class="form-control" style="width:auto;padding:8px 18px;cursor:pointer;"
+                  onclick="kptTutupPratonton()">Batal</button>
+          <button class="export-btn" style="padding:8px 20px;" onclick="kptSalinSPPB()">
+            📋 Salin ke Papan Klip
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', h);
+}
+
+function kptTutupPratonton() {
+    const el = document.getElementById('sppb-overlay');
+    if (el) el.remove();
+}
+
+// Guru ubah TP → cadangan Usaha/Ulasan dikira semula, KECUALI yang sudah
+// diubah sendiri oleh guru (tandaan *Manual) — pilihan guru tidak ditimpa.
+function kptTukarTP(i, nilai) {
+    const m = sppbPratontonData.murid[i];
+    m.tp = parseInt(nilai, 10);
+
+    if (!m.usahaManual) {
+        m.usaha = kptTPKeUsaha(m.tp);
+        const s = document.getElementById('sppb-usaha-' + i);
+        if (s) s.value = m.usaha;
+    }
+    if (!m.ulasanManual) {
+        m.ulasan = kptTPKeUlasan(m.tp);
+        const s = document.getElementById('sppb-ulasan-' + i);
+        if (s) s.value = m.ulasan;
+    }
+}
+
+function kptKiraRingkasan() {
+    const d = sppbPratontonData;
+    if (!d) return;
+    const n = d.murid.filter(m => m.tp !== null).length;
+    const bhg = [];
+    if (d.isiTP) bhg.push('TP');
+    if (d.isiUsaha) bhg.push('Usaha');
+    if (d.isiUlasan) bhg.push('Ulasan');
+
+    const el = document.getElementById('sppb-ringkasan');
+    if (!el) return;
+    el.innerHTML = bhg.length
+        ? `<strong>${n}</strong> murid &middot; ${bhg.join(' + ')}`
+        : '<span style="color:#b45309;">Tiada bahagian dipilih</span>';
+}
+
+async function kptSalinSPPB() {
+    if (!sppbPratontonData) return;
+
+    const d = sppbPratontonData;
+    if (!d.isiTP && !d.isiUsaha && !d.isiUlasan) {
+        showToast('Pilih sekurang-kurangnya satu bahagian untuk diisi', 'warning'); return;
+    }
+
+    const murid = d.murid
+        .filter(m => m.tp !== null && m.noKp)
+        .map(m => ({ nokp: m.noKp, nama: m.nama, tp: m.tp, usaha: m.usaha, ulasan: m.ulasan }));
+
+    if (!murid.length) { showToast('Tiada murid dengan TP untuk disalin', 'warning'); return; }
+
+    const data = {
+        jenisData: 'PBD-SPPB-v1',
+        konteks: d.konteks,
+        isi: { tp: d.isiTP, usaha: d.isiUsaha, ulasan: d.isiUlasan },
+        dijana: new Date().toISOString(),
+        murid
+    };
+
+    const bhg = [];
+    if (d.isiTP) bhg.push('TP');
+    if (d.isiUsaha) bhg.push('Usaha');
+    if (d.isiUlasan) bhg.push('Ulasan');
+
+    try {
+        await navigator.clipboard.writeText(JSON.stringify(data));
+        kptTutupPratonton();
+        showToast('✅ ' + murid.length + ' murid (' + bhg.join(' + ') +
+                  ') disalin. Buka SPPB dan klik bookmarklet "PBD HELPER".', 'success');
+    } catch (e) {
+        showToast('Gagal menyalin: ' + e.message, 'error');
+    }
+}
+
 // ── PDF EXPORT ────────────────────────────────────────────────────────────────
 async function kptExportPDF() {
     const subjek    = document.getElementById('kpt-subjek').value;
@@ -1221,7 +1492,8 @@ async function kptExportPDF() {
         const n           = kptTopikList.length;
         const tempohLabel = penilaian === 'P1' ? 'Penilaian 1 (Jan–Mei)'
                           : penilaian === 'P2' ? 'Penilaian 2 (Jun–Okt)' : 'Semua Tempoh';
-        const kelasAvg    = (muridList.reduce((sum,m) => sum + m.tpArr.reduce((a,b)=>a+b,0)/n, 0) / muridList.length).toFixed(2);
+        const pdfAvgs     = muridList.map(kptPurataMurid).filter(a => a !== null);
+        const kelasAvg    = pdfAvgs.length ? (pdfAvgs.reduce((a,b)=>a+b,0) / pdfAvgs.length).toFixed(2) : '0.00';
         const tarikhCetak = new Date().toLocaleDateString('ms-MY', {day:'2-digit',month:'2-digit',year:'numeric'});
         const isLandscape = n > 5;
         const pageW       = isLandscape ? '277mm' : '190mm';
@@ -1294,9 +1566,8 @@ async function kptExportPDF() {
             <tbody>`;
 
         muridList.forEach((m, idx) => {
-            const jumlah = m.tpArr.reduce((a,b)=>a+b,0);
-            const avg    = jumlah / n;
-            const avgStr = avg.toFixed(2);
+            const avg    = kptPurataMurid(m) ?? 0;
+            const avgStr = kptPurataMurid(m) === null ? '—' : avg.toFixed(2);
             const rowBg  = idx % 2 === 0 ? '#f8faff' : '#ffffff';
             const status = avg >= 5 ? 'Cemerlang' : avg >= 4 ? 'Baik' : avg >= 3 ? 'Sederhana' : 'Lemah';
             const stColor= avg >= 5 ? '#15803d' : avg >= 4 ? '#854d0e' : avg >= 3 ? '#9a3412' : '#991b1b';

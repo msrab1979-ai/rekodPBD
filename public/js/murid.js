@@ -130,7 +130,7 @@ function displayMuridTable(muridList) {
             '<td data-label="AGAMA">' + agamaBadge + '</td>' +
             '<td data-label="TINDAKAN"><div class="table-actions">' +
             '<button class="btn btn-sm btn-primary" onclick=\'editMurid("' + murid.noKp + '")\'>✏️ Edit</button>' +
-            '<button class="btn btn-sm btn-danger" onclick=\'deleteMurid("' + murid.noKp + '", "' + murid.namaMurid + '")\'>🗑️ Padam</button>' +
+            '<button class="btn btn-sm btn-danger" onclick=\'deleteMurid("' + murid.noKp + '", "' + murid.namaMurid + '", "' + (murid.tahun||'') + '", "' + (murid.kelas||'') + '")\'>🗑️ Padam</button>' +
             '</div></td>';
         counter++;
     });
@@ -287,7 +287,17 @@ async function saveMurid() {
             
             muridData.tarikhDaftar = getTimestamp();
             await db.collection('murid').doc(noKp).set(muridData);
-            showToast('✅ Murid berjaya ditambah', 'success');
+
+            /* Masukkan ke semua rekod sedia ada kelasnya dengan TP 0
+               (belum dinilai) — guru mengisinya melalui Isi Pantas PBD. */
+            let ditambah = 0;
+            if (typeof smTambahMuridKeRekod === 'function') {
+                ditambah = await smTambahMuridKeRekod(noKp, namaMurid, tahun, kelas);
+            }
+
+            showToast(ditambah
+                ? '✅ Murid ditambah. Dimasukkan ke ' + ditambah + ' rekod PBD (TP belum diisi).'
+                : '✅ Murid berjaya ditambah', 'success');
         }
         
         closeModal('modalMurid');
@@ -300,10 +310,11 @@ async function saveMurid() {
     }
 }
 
-function deleteMurid(noKp, nama) {
-    deleteItem = { noKp: noKp, nama: nama };
+function deleteMurid(noKp, nama, tahun, kelas) {
+    deleteItem = { noKp: noKp, nama: nama, tahun: tahun, kelas: kelas };
     document.getElementById('deleteConfirmMessage').textContent = 
-        'Adakah anda pasti mahu memadam murid "' + nama + '" (No KP: ' + noKp + ')?';
+        'Adakah anda pasti mahu memadam murid "' + nama + '" (No KP: ' + noKp + ')? ' +
+        'Murid ini juga akan dibuang daripada semua rekod PBD kelasnya.';
     openModal('modalConfirmDelete');
 }
 
@@ -315,7 +326,18 @@ async function confirmDelete() {
     
     try {
         await db.collection('murid').doc(deleteItem.noKp).delete();
-        showToast('✅ Murid berjaya dipadam', 'success');
+
+        /* Rekod PBD menyimpan salinan senarai murid. Tanpa langkah ini murid
+           yang dipadam terus muncul dalam Analisa. */
+        let dikemas = 0;
+        if (deleteItem.tahun && deleteItem.kelas && typeof smBuangMuridDariRekod === 'function') {
+            dikemas = await smBuangMuridDariRekod(
+                deleteItem.noKp, deleteItem.tahun, deleteItem.kelas);
+        }
+
+        showToast(dikemas
+            ? '✅ Murid dipadam. ' + dikemas + ' rekod PBD dikemas kini.'
+            : '✅ Murid berjaya dipadam', 'success');
         deleteItem = null;
         loadMuridList();
         hideLoading();
