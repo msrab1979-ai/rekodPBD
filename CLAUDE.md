@@ -160,7 +160,13 @@ Buang komen blok sahaja, kekalkan `\n`. `bina-panduan.js` menjalankan
 
 # ISI PANTAS PBD
 
-`public/js/isipantas.js` — butang di bawah kiri `analisa.html`.
+`public/js/isipantas.js` — **ikon ⚡ sahaja** di bawah kiri `analisa.html`.
+
+Butang sengaja TANPA teks dan TANPA tooltip (opacity .28, terang bila hover).
+Alat ini menulis dan boleh menimpa TP secara pukal, jadi ia tidak diiklankan
+kepada guru biasa. Jangan tambah label kembali. Ini pagar "elak tersalah
+tekan", BUKAN keselamatan — Firestore rules terbuka, sesiapa yang tahu boleh
+panggil `ipBuka()` dari Console. "Buang janaan" kekal berlabel.
 
 Menjana rekod bagi topik yang BELUM ada rekod, dan boleh juga **menulis semula
 TP** rekod yang sudah ada. Guru menetapkan satu TP setiap murid; sistem
