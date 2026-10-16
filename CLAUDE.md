@@ -178,6 +178,25 @@ kemasukan manual, menjadi 33 klik.
 - Pratonton memaparkan setiap topik; guru boleh buang mana-mana
 - Setiap rekod ditanda `dijana_auto` + `dijana_kumpulan` → ikon 🗑️ "Buang janaan"
 
+## Duplikat — dua pagar dalam `ipSimpan`
+
+Berlaku sebenar DUA kali: PSV TIGA HIGEN (beza 9 saat) dan PJK SATU PIXEL
+(7 saat) — guru menekan "Simpan" dua kali semasa janaan berjalan, menghasilkan
+dua set rekod penuh dengan `dijana_kumpulan` berbeza. Purata TP murid dikira
+dua kali, dan angka itu masuk ke SPPB.
+
+**Pagar 1 — kunci klik berganda.** `ipSedangSimpan` menolak panggilan kedua;
+butang dimatikan (`disabled`, opacity .5, teks "Menyimpan…"). Dibuka semula
+dalam `finally`, jika tidak satu ralat mengunci butang selamanya.
+
+**Pagar 2 — semak semula sebelum menulis.** `ipTopikKosong` ialah snapshot
+ketika "Jana" ditekan. Sebelum menulis, `ipSimpan` membaca semula Firestore
+dan menapis topik yang sudah ada rekod dalam tempoh itu (`pilihSah`). Ini
+menangkap duplikat walaupun pagar 1 gagal — termasuk dari tab lain atau guru
+lain. Semua penulisan mesti guna `pilihSah`, BUKAN `pilih`.
+
+Diuji pada data sebenar: 3 topik P2 yang sudah ada rekod → sifar dicipta.
+
 ## Buang janaan — senarai kumpulan
 
 Ikon 🗑️ sebelah ⚡ (juga tanpa teks). Rekod dikumpulkan ikut `dijana_kumpulan`

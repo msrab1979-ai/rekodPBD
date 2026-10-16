@@ -538,7 +538,19 @@ function ipKiraPilih() {
 
 // ── Simpan ───────────────────────────────────────────────────────────────────
 
+/* Pagar klik berganda. Menjana 70 rekod mengambil beberapa saat; sebelum ini
+   butang "Simpan" kekal hidup sepanjang tempoh itu, jadi guru yang menekan
+   dua kali menghasilkan DUA set rekod penuh dengan kumpulanId berbeza.
+   Berlaku sebenar: PSV TIGA HIGEN (beza 9 saat) dan PJK SATU PIXEL (7 saat),
+   masing-masing menggandakan purata TP murid. Jangan buang pagar ini. */
+let ipSedangSimpan = false;
+
 async function ipSimpan() {
+    if (ipSedangSimpan) {
+        showToast('Sedang menyimpan — sila tunggu', 'warning');
+        return;
+    }
+
     const pilih = ipTopikKosong.filter(t => t.pilih);
     const tulis = ipTopikAda.filter(t => t.pilih);
     if (!pilih.length && !tulis.length) {
@@ -567,16 +579,60 @@ async function ipSimpan() {
         'secara MANUAL oleh guru di skrin Rekod, bukan dijana automatik.\n\n' +
         'TP asal akan ditimpa dan tidak boleh dikembalikan.\n\nSahkan?')) return;
 
+    ipSedangSimpan = true;
+    const btnSimpan = document.querySelector('#ip-overlay button[onclick*="ipSimpan"]');
+    if (btnSimpan) {
+        btnSimpan.disabled = true;
+        btnSimpan.style.opacity = '.5';
+        btnSimpan.style.cursor = 'not-allowed';
+        btnSimpan.textContent = 'Menyimpan…';
+    }
+
     showLoading('Menyimpan...');
     try {
+        /* Pagar kedua: semak semula terhadap Firestore sebelum menulis.
+           `ipTopikKosong` ialah snapshot ketika "Jana" ditekan — jika rekod
+           sudah dicipta sejak itu (klik berganda, tab lain, guru lain), menulis
+           lagi menghasilkan duplikat. Semakan ini menangkapnya walaupun pagar
+           klik berganda gagal. */
+        let pilihSah = pilih;
+        if (pilih.length) {
+            const semakSnap = await firestoreRetry(() => db.collection('rekod_pbd')
+                .where('subjek','==',k.subjek).where('kelas','==',k.fullKelas).get());
+
+            const adaSekarang = new Set();
+            semakSnap.forEach(d => {
+                const r = d.data();
+                const bln = parseInt((r.tarikh_string || '').substring(5,7), 10);
+                const dalamTempoh = !k.penilaian
+                    || (k.penilaian === 'P1' && bln >= 1 && bln <= 5)
+                    || (k.penilaian === 'P2' && bln >= 6 && bln <= 10);
+                if (dalamTempoh) adaSekarang.add((r.topik || '') + '|' + (r.sub_topik || ''));
+            });
+
+            pilihSah = pilih.filter(t => !adaSekarang.has(t.topik + '|' + t.sub));
+            const dilangkau = pilih.length - pilihSah.length;
+
+            if (dilangkau) {
+                console.warn('Isi Pantas: ' + dilangkau + ' topik sudah ada rekod — dilangkau');
+                if (!pilihSah.length) {
+                    hideLoading();
+                    ipTutup();
+                    showToast('Rekod untuk topik ini sudah wujud — tiada duplikat dicipta', 'warning');
+                    return;
+                }
+                showToast(dilangkau + ' topik sudah ada rekod — dilangkau', 'warning');
+            }
+        }
+
         // Config + agihan tarikh hanya diperlukan untuk rekod BAHARU
         let lastId = 0;
         let tarikhSenarai = [];
-        if (pilih.length) {
+        if (pilihSah.length) {
             const cfg = await firestoreRetry(() =>
                 db.collection('config').doc('system_settings').get());
             lastId = (cfg.data().lastRekodId || 0);
-            tarikhSenarai = ipAgihTarikh(k.penilaian, pilih.length);
+            tarikhSenarai = ipAgihTarikh(k.penilaian, pilihSah.length);
         }
         const namaGuru = (document.getElementById('inputNamaGuru') || {}).value || '';
         const kumpulanId = 'IP' + Date.now();   // penanda kumpulan untuk buang semula
@@ -597,8 +653,8 @@ async function ipSimpan() {
 
         // Tulis berkelompok — 500 ialah had satu batch Firestore
         let siap = 0;
-        for (let i = 0; i < pilih.length; i += 100) {
-            const kepingan = pilih.slice(i, i + 100);
+        for (let i = 0; i < pilihSah.length; i += 100) {
+            const kepingan = pilihSah.slice(i, i + 100);
             const batch = db.batch();
 
             kepingan.forEach((t, j) => {
@@ -637,10 +693,10 @@ async function ipSimpan() {
 
             await batch.commit();
             siap += kepingan.length;
-            showLoading('Menjana... ' + siap + '/' + pilih.length);
+            showLoading('Menjana... ' + siap + '/' + pilihSah.length);
         }
 
-        if (pilih.length) {
+        if (pilihSah.length) {
             await db.collection('config').doc('system_settings')
                 .update({ lastRekodId: lastId });
         }
@@ -694,7 +750,7 @@ async function ipSimpan() {
         hideLoading();
         ipTutup();
         const lapor = [];
-        if (pilih.length) lapor.push(pilih.length + ' dijana');
+        if (pilihSah.length) lapor.push(pilihSah.length + ' dijana');
         if (ditulis)      lapor.push(ditulis + ' ditulis semula');
         showToast('✅ ' + lapor.join(' · ') + '. Semak di tab Keputusan Kelas.', 'success');
 
@@ -702,6 +758,9 @@ async function ipSimpan() {
         hideLoading();
         console.error(e);
         showToast('Ralat: ' + e.message, 'error');
+    } finally {
+        // Sentiasa buka kunci — jika tidak, ralat mengunci butang selamanya
+        ipSedangSimpan = false;
     }
 }
 
