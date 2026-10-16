@@ -37,6 +37,24 @@ firebase deploy --only hosting
 menambah murid dalam koleksi `murid` TIDAK mengemas kini salinan itu — gunakan
 `sync-murid.js`, yang dipanggil secara automatik oleh fungsi padam/tambah.
 
+### Bersih Murid Hantu — dua fasa, mesti melepaskan kawalan
+
+Butang 🧹 di `pengurusan-murid.html`. Tahun+Kelas dipilih → satu kelas;
+dibiarkan kosong → SEMUA kelas (38 kelas, ~9,200 rekod, ~80 saat imbasan).
+
+Mod semua-kelas wujud kerana hantu tersebar: membersih satu demi satu bermakna
+guru mesti meneka kelas mana terjejas. Kes sebenar 2026-10-16: **15 murid
+hantu dalam 1,459 rekod merentasi 13 kelas** — warisan padaman sebelum
+`sync-murid.js` wujud. Dibersihkan, disahkan sifar.
+
+**Dua perkara yang MESTI dikekalkan:**
+1. `await new Promise(r => setTimeout(r, 0))` antara setiap kelas dan setiap
+   kepingan tulis. Tanpanya gelung tidak pernah melepaskan kawalan dan Chrome
+   membekukan tab (disahkan: renderer tergantung, CDP timeout 45s).
+2. Fasa 1 mengumpul **id rekod sahaja**, bukan dokumen penuh; fasa 2 membaca
+   semula 100 pada satu masa. Menyimpan 1,459 dokumen (array 33 murid setiap
+   satu) dalam memori sekali gus ialah punca yang sama.
+
 ## Pantang Firestore
 
 - Jangan compound query tanpa index
