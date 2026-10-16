@@ -615,10 +615,22 @@ async function ipSimpan() {
 
             if (dilangkau) {
                 console.warn('Isi Pantas: ' + dilangkau + ' topik sudah ada rekod — dilangkau');
-                if (!pilihSah.length) {
+                if (!pilihSah.length && !tulis.length) {
+                    /* Semua topik sudah ada rekod dan guru tidak menanda apa-apa
+                       untuk ditulis semula. Modal DIKEKALKAN terbuka — menutupnya
+                       menyembunyikan bahagian ♻️ TULIS SEMULA, iaitu tepat apa
+                       yang guru perlukan jika niatnya menukar TP. */
                     hideLoading();
-                    ipTutup();
-                    showToast('Rekod untuk topik ini sudah wujud — tiada duplikat dicipta', 'warning');
+                    ipSedangSimpan = false;
+                    const btn = document.querySelector('#ip-overlay button[onclick*="ipSimpan"]');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.style.opacity = '';
+                        btn.style.cursor = 'pointer';
+                        btn.textContent = '✓ Simpan';
+                    }
+                    showToast('Semua topik sudah ada rekod. Untuk menukar TP, ' +
+                              'tanda di bahagian ♻️ TULIS SEMULA.', 'warning');
                     return;
                 }
                 showToast(dilangkau + ' topik sudah ada rekod — dilangkau', 'warning');
