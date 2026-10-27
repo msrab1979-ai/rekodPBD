@@ -5,6 +5,7 @@
 
 let chartIndividu = null;
 let chartKelas = null;
+let chartMuridTP = null;
 let chartPerbandingan = null;
 let currentAnalisaData = null;
 
@@ -368,6 +369,7 @@ async function klsLoadData() {
         const topikMap = {};
         const muridSet = new Set();
         const totalTP = {1:0,2:0,3:0,4:0,5:0,6:0};
+        const muridTP = {};   // noKp -> { nama, tps:[] }
 
         const filteredDocs = filterSnapByPenilaian(snap, penilaian);
         filteredDocs.forEach(data => {
@@ -379,20 +381,55 @@ async function klsLoadData() {
                 topikMap[topik].penguasaans.push(m.penguasaan || 'Menguasai');
                 totalTP[m.tp]++; 
                 muridSet.add(m.noKp); 
+                // Kumpul TP setiap murid (padan No. KP) untuk taburan bilangan murid
+                if(m.noKp) {
+                    if(!muridTP[m.noKp]) muridTP[m.noKp] = { nama: m.nama || '', tps: [] };
+                    if(m.tp > 0) muridTP[m.noKp].tps.push(m.tp);
+                }
             });
         });
         
         const topikKeys = Object.keys(topikMap);
         if(topikKeys.length===0) { container.innerHTML='<div style="text-align:center;padding:60px;color:#999;"><div style="font-size:60px;">📭</div><p>Tiada rekod dijumpai</p></div>'; hideLoading(); return; }
         
-        currentAnalisaData = { type:'kelas', subjek, fullKelas, topikMap, totalTP, muridCount: muridSet.size };
+        // *** TABURAN BILANGAN MURID MENGIKUT TP ***
+        // Purata TP setiap murid dikira HANYA daripada topik yang murid itu
+        // benar-benar dinilai (tp > 0). Mengira 0 sebagai TP akan menurunkan
+        // purata sehingga satu tahap penuh — lihat kptPurataMurid.
+        const bilMuridTP = {1:0,2:0,3:0,4:0,5:0,6:0};
+        let bilDinilai = 0;
+        Object.keys(muridTP).forEach(kp => {
+            const d = muridTP[kp];
+            if(!d.tps.length) return;
+            const avg = d.tps.reduce((a,b)=>a+b,0)/d.tps.length;
+            const tp = Math.min(6, Math.max(1, Math.round(avg)));
+            bilMuridTP[tp]++;
+            bilDinilai++;
+        });
+        currentAnalisaData = { type:'kelas', subjek, fullKelas, topikMap, totalTP, muridCount: muridSet.size, bilMuridTP, bilDinilai };
         topikKeys.sort((a,b) => { const avgA = topikMap[a].tps.reduce((s,v)=>s+v,0)/topikMap[a].tps.length; const avgB = topikMap[b].tps.reduce((s,v)=>s+v,0)/topikMap[b].tps.length; return avgB - avgA; });
         
         let html = '';
         html += '<div style="background:linear-gradient(135deg,#f093fb,#f5576c);border-radius:16px;padding:25px;color:white;margin-bottom:25px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;">';
         html += '<div><h2 style="margin:0;">🏫 '+subjek+' - '+fullKelas+'</h2><p style="margin:5px 0 0;opacity:0.85;">👥 '+muridSet.size+' Murid • 📊 '+topikKeys.length+' Topik'+getPenilaianLabel(penilaian)+'</p></div>';
         html += '<button class="export-btn" style="background:white;color:#f5576c;" onclick="klsExportPDF()">📄 Export PDF</button></div>';
-        html += '<div class="chart-container"><h4>📊 TABURAN TP KELAS</h4><canvas id="chartKelas" height="100"></canvas></div>';
+        // Kad bilangan murid mengikut TP
+        const TP_WARNA = {1:'#ef4444',2:'#f97316',3:'#f59e0b',4:'#eab308',5:'#22c55e',6:'#10b981'};
+        html += '<div class="chart-container"><h4>👥 BILANGAN MURID MENGIKUT TP</h4>';
+        html += '<p style="margin:0 0 14px;color:#666;font-size:13px;">Berdasarkan purata TP setiap murid merentasi '+topikKeys.length+' topik ('+bilDinilai+' murid dinilai)</p>';
+        html += '<div style="display:flex;gap:10px;flex-wrap:wrap;">';
+        for(let i=1;i<=6;i++) {
+            const peratus = bilDinilai ? Math.round(bilMuridTP[i]/bilDinilai*100) : 0;
+            html += '<div style="flex:1;min-width:110px;background:#f8fafc;border:2px solid '+TP_WARNA[i]+';border-radius:14px;padding:14px;text-align:center;">';
+            html += '<div style="font-size:12px;font-weight:700;color:'+TP_WARNA[i]+';letter-spacing:.5px;">TP '+i+'</div>';
+            html += '<div style="font-size:30px;font-weight:800;color:#1e293b;line-height:1.2;">'+bilMuridTP[i]+'</div>';
+            html += '<div style="font-size:12px;color:#64748b;">orang • '+peratus+'%</div>';
+            html += '<div style="font-size:11px;color:#94a3b8;margin-top:4px;">'+getTPLabel(i)+'</div>';
+            html += '</div>';
+        }
+        html += '</div>';
+        html += '<canvas id="chartMuridTP" height="100" style="margin-top:18px;"></canvas></div>';
+        html += '<div class="chart-container"><h4>📊 TABURAN TP IKUT KEMASUKAN TOPIK</h4><p style="margin:0 0 10px;color:#666;font-size:13px;">Setiap murid dikira sekali bagi setiap topik — jumlah lebih besar daripada bilangan murid</p><canvas id="chartKelas" height="100"></canvas></div>';
         html += '<div class="chart-container"><h4>📋 PRESTASI MENGIKUT TOPIK</h4><div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">';
         html += '<thead><tr style="background:var(--primary);color:white;"><th style="padding:10px;text-align:left;">TOPIK</th><th style="padding:10px;text-align:center;">PURATA</th><th style="padding:10px;text-align:center;">TP1</th><th style="padding:10px;text-align:center;">TP2</th><th style="padding:10px;text-align:center;">TP3</th><th style="padding:10px;text-align:center;">TP4</th><th style="padding:10px;text-align:center;">TP5</th><th style="padding:10px;text-align:center;">TP6</th><th style="padding:10px;text-align:center;">PENGUASAAN</th><th style="padding:10px;text-align:center;">STATUS</th></tr></thead><tbody>';
         
@@ -424,6 +461,13 @@ async function klsLoadData() {
             type:'bar',
             data:{ labels:['TP 1','TP 2','TP 3','TP 4','TP 5','TP 6'], datasets:[{ label:'Bilangan', data:[totalTP[1],totalTP[2],totalTP[3],totalTP[4],totalTP[5],totalTP[6]], backgroundColor:['#ef4444','#f97316','#f59e0b','#eab308','#22c55e','#10b981'], borderRadius:6 }] },
             options:{ responsive:true, scales:{ y:{beginAtZero:true,title:{display:true,text:'Bilangan'},ticks:{precision:0}}, x:{title:{display:true,text:'Tahap Penguasaan'}} }, plugins:{legend:{position:'top'}} }
+        });
+
+        if(chartMuridTP) chartMuridTP.destroy();
+        chartMuridTP = new Chart(document.getElementById('chartMuridTP').getContext('2d'), {
+            type:'bar',
+            data:{ labels:['TP 1','TP 2','TP 3','TP 4','TP 5','TP 6'], datasets:[{ label:'Bilangan Murid', data:[bilMuridTP[1],bilMuridTP[2],bilMuridTP[3],bilMuridTP[4],bilMuridTP[5],bilMuridTP[6]], backgroundColor:['#ef4444','#f97316','#f59e0b','#eab308','#22c55e','#10b981'], borderRadius:6 }] },
+            options:{ responsive:true, scales:{ y:{beginAtZero:true,title:{display:true,text:'Bilangan Murid'},ticks:{precision:0}}, x:{title:{display:true,text:'Tahap Penguasaan (purata murid)'}} }, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c => c.parsed.y+' orang'}}} }
         });
         hideLoading();
     } catch(e) { console.error(e); showToast('Error: '+e.message,'error'); hideLoading(); }
@@ -851,6 +895,23 @@ async function klsExportPDF() {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('portrait','mm','a4');
     let y = pdfHeader(pdf, 'ANALISIS PRESTASI KELAS', currentAnalisaData.subjek+' - '+currentAnalisaData.fullKelas);
+
+    // Taburan bilangan murid mengikut TP (purata setiap murid)
+    const bm = currentAnalisaData.bilMuridTP, bd = currentAnalisaData.bilDinilai || 0;
+    if(bm) {
+        pdf.setFontSize(10); pdf.setFont(undefined,'bold'); pdf.setTextColor(240,147,251);
+        pdf.text('BILANGAN MURID MENGIKUT TP  ('+bd+' murid dinilai)', 15, y); y += 2;
+        pdf.setTextColor(0,0,0); pdf.setFont(undefined,'normal');
+        pdf.autoTable({ startY:y+2,
+            head:[['TP 1','TP 2','TP 3','TP 4','TP 5','TP 6']],
+            body:[[1,2,3,4,5,6].map(i => bm[i]+' org'+(bd?' ('+Math.round(bm[i]/bd*100)+'%)':''))],
+            theme:'grid',
+            headStyles:{fillColor:[240,147,251],textColor:[255,255,255],fontSize:9,fontStyle:'bold',halign:'center'},
+            bodyStyles:{fontSize:9,font:'helvetica',halign:'center'},
+        });
+        y = pdf.lastAutoTable.finalY + 8;
+    }
+
     const topikKeys = Object.keys(currentAnalisaData.topikMap).sort((a,b) => {
         const avgA = currentAnalisaData.topikMap[a].tps.reduce((s,v)=>s+v,0)/currentAnalisaData.topikMap[a].tps.length;
         const avgB = currentAnalisaData.topikMap[b].tps.reduce((s,v)=>s+v,0)/currentAnalisaData.topikMap[b].tps.length;

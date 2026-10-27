@@ -272,6 +272,28 @@ Angka ini ditampal ke rekod rasmi KPM — mesti tepat.
 
 Pembundaran: `Math.round` standard (4.50 → TP5), dihadkan 1–6.
 
+## Dua taburan berbeza dalam Prestasi Kelas — jangan campur
+
+Tab 🏫 Prestasi Kelas (`klsLoadData`) memaparkan DUA carta yang kelihatan
+serupa tetapi mengira perkara berbeza. Jangan gabungkan atau buang salah satu.
+
+| Bahagian | Dikira | Jumlah tipikal |
+|---|---|---|
+| 👥 **BILANGAN MURID MENGIKUT TP** | satu murid = satu kiraan, ikut purata TP merentasi semua topik | 33 (= bilangan murid) |
+| 📊 **TABURAN TP IKUT KEMASUKAN TOPIK** (`totalTP`) | satu murid dikira sekali bagi SETIAP topik | 1,320 (33 × 40 topik) |
+
+`totalTP` dahulu berlabel "TABURAN TP KELAS" sahaja — guru membaca 1,320 itu
+sebagai bilangan orang. Label dan nota penjelasan di bawah setiap carta ialah
+pagar terhadap salah tafsir itu; jangan buang.
+
+Taburan murid dikumpul dalam `muridTP` (kunci **No. KP**, bukan nama — nama
+boleh berulang) dan hanya `tp > 0` ditolak masuk, jadi ia menggunakan logik
+`kptPurataMurid` yang sama seperti angka yang ditampal ke SPPB. Kedua-dua
+angka mesti sepadan; jika tidak, guru melihat TP berbeza di Prestasi Kelas
+dan di Keputusan Kelas.
+
+Taburan murid juga masuk ke `klsExportPDF`.
+
 ---
 
 # Cache Firebase Hosting
