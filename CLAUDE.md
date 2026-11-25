@@ -377,4 +377,22 @@ Status 2026-11-25: semua 15,785 `rekod_pbd` dan 4 `semakan_penilaian` sudah
 - Menambah `tahun_rekod` pada query sedia ada yang ada `orderBy` perlukan index
   komposit baharu (`firestore.indexes.json`).
 
-Soalan belum dijawab pengguna: nama kelas kekal semasa naik Tahun? ENAM → TAMAT?
+**Jawapan pengguna 2026-11-25: nama kelas BERUBAH semasa naik Tahun** (cth Ali
+2026 4 INTEL → 2027 5 PENTIUM). Jadi naik tahun mesti ikut senarai kelas baharu
+(import), bukan auto Tahun+1 dengan kelas sama.
+
+- Dokumen `murid` ber-ID No. KP — murid sama = kemas kini `tahun`+`kelas`, bukan doc baharu.
+- Import CSV `admin.js` sekarang MELANGKAU No. KP sedia ada → Ali kekal 4 INTEL.
+- `smTambahMuridKeRekod` / `smBuangMuridDariRekod` / `smBersihHantu` tapis `kelas`
+  sahaja, tiada `tahun_rekod` → akan menyentuh rekod 2026.
+
+**Guru isi rekod 2026 selepas `tahunSemasa` = 2027:**
+- Edit TP rekod 2026 sedia ada → BOLEH (`rekod-pbd.js` ada dropdown tahun; guna
+  salinan `murid` dalam rekod, tidak terjejas murid pindah kelas).
+- Rekod 2026 BAHARU → TIDAK (`rekod.js` tulis `tahunSemasa`, senarai murid dari
+  koleksi `murid` semasa). Isi Pantas juga tidak.
+- Analisa / salin SPPB → BERCAMPUR 2026+2027 (kebanyakan tab tiada tapis tahun).
+- Urutan selamat: siapkan PBD 2026 + SPPB DAHULU, baru naik tahun.
+
+Soalan belum dijawab pengguna: ENAM → TAMAT? Sumber senarai 2027 (APDM?)?
+SPPB 2026 siap sebelum cuti atau masih diisi Januari 2027?
