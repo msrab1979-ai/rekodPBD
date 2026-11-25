@@ -28,6 +28,9 @@ firebase deploy --only hosting
 | `public/helper-pbd.html` | Panduan pasang bookmarklet (DIJANA) |
 | `helper-pbd/tampal-pbd.js` | Sumber bookmarklet SPPB |
 | `helper-pbd/bina-panduan.js` | Pembina: `node helper-pbd/bina-panduan.js` |
+| `public/dashboard.html` | Dashboard Pelaporan PBD (pihak atasan) — data statik |
+| `public/js/dashboard-data.js` | Agregat untuk dashboard (DIJANA) |
+| `dashboard/jana-data.mjs` | Penjana: `node dashboard/jana-data.mjs 2026` |
 
 ## Koleksi Firestore
 
@@ -302,3 +305,76 @@ Taburan murid juga masuk ke `klsExportPDF`.
 Lalai Firebase ialah `max-age=3600` — setiap deploy mengambil masa sejam untuk
 sampai kepada guru, dan pembaikan kelihatan tidak berkesan sedangkan ia sudah
 live. Sahkan dengan `curl -sI` sebelum menganggap kod yang salah.
+
+---
+
+# DASHBOARD PELAPORAN PBD
+
+`public/dashboard.html` — https://hipersispbd.web.app/dashboard.html. Untuk dibentang
+kepada pihak atasan (GB/PK, PPD/JPN). Tidak dipautkan dari `index.html`.
+
+**Data STATIK, bukan langsung.** Halaman membaca `js/dashboard-data.js` sahaja —
+tiada panggilan Firestore. Angka hanya berubah selepas dijana semula:
+
+```bash
+node dashboard/jana-data.mjs 2026      # ~2 minit, BACA SAHAJA (REST)
+firebase deploy --only hosting
+```
+
+Sebab statik: membaca 15,000+ rekod di pelayar membekukan tab (lihat Pantang
+Firestore). Penjana menapis `tahun_rekod`, jadi tahun lain tidak bercampur.
+
+**Fail data mesti AGREGAT SAHAJA** — tiada `noKp`, `namaMurid`, `nama_guru`.
+Repo GitHub ialah PUBLIC dan halaman tiada log masuk. Semak sebelum commit:
+`grep -iE '"(noKp|namaMurid|nama_guru)"' public/js/dashboard-data.js` mesti kosong.
+
+## Struktur (keputusan pengguna)
+
+Hero → Dapatan Utama → 01 Kad Skor Subjek (tapis Tahap 1/2, Tahun 1–6) → 02 Peta
+Subjek×Tahun → 03 Analisis Subjek (pilih subjek) → 04 Keseragaman Penarafan (%TP6)
+→ 05 Murid Berisiko → Cadangan Tindakan. Penapis **Sesi** di bar atas (lalai 2026).
+
+**DIBUANG atas permintaan pengguna — jangan tambah semula:** Jurang Antara Kelas,
+Pergerakan TP Pertengahan→Akhir, Trend Penguasaan bulanan, dan keseluruhan bahagian
+Kualiti Data (liputan, rekod seragam, semakan pentadbir, **Janaan Isi Pantas** —
+Isi Pantas sengaja disorok, lihat di atas).
+
+## Metrik — kenapa "% cemerlang", bukan "% menguasai"
+
+Data sebenar 2026: 99.6% murid menguasai (TP3+) dan hampir setiap subjek 96–100%.
+"% menguasai" tidak membezakan apa-apa, jadi ukuran utama ialah **% cemerlang
+(TP5–6)** dan **purata TP**. TP murid dalam satu subjek = logik `kptPurataMurid`.
+
+- **Taburan murid** (`muridHist`, `tahunMurid`): satu murid satu kiraan — Kad Skor.
+- **Taburan penilaian** (`hist`, `tahun`): murid × topik — Peta, %TP6, purata.
+  Sama seperti dua taburan di Prestasi Kelas; jangan campur.
+- Murid berisiko = purata TP1–2 dalam ≥2 subjek teras (BM, BI, MT/MATH, SN/SCI).
+- Ayat "terendah" dalam Kad Skor mengabaikan subjek < 20 murid (PM Tahun 1 = 2 murid).
+- `SCEINCE` ialah ejaan SEBENAR nama subjek dalam DB; dipaparkan sebagai SCI.
+
+---
+
+# Berbilang tahun — seni bina (DRAF, belum disahkan pengguna)
+
+Prinsip: **rekod tidak dipadam; setiap rekod ditanda `tahun_rekod`;
+`config.tahunSemasa` ialah suis.** Tahun baharu = admin tukar `tahunSemasa`,
+skrin guru kosong, rekod lama kekal dan boleh dilihat di Dashboard.
+
+Status 2026-11-25: semua 15,785 `rekod_pbd` dan 4 `semakan_penilaian` sudah
+`tahun_rekod: "2026"` (string). Rekod, Rekod PBD, Semakan sudah menapis ikut tahun.
+
+**Mesti dibaiki SEBELUM Januari 2027:**
+- `analisa.js`, `sync-murid.js`, `isipantas.js` — query `rekod_pbd` tanpa
+  `tahun_rekod`; data dua tahun akan bercampur.
+- `isipantas.js` menetapkan `tahun_rekod` daripada `new Date().getFullYear()`,
+  bukan `config.tahunSemasa`.
+- **Bersih Murid Hantu** tanpa tapis tahun akan membuang murid daripada rekod
+  tahun lepas selepas murid naik Tahun (mereka "hilang" dari kelas lama).
+- `admin.js` "Reset" (`resetRekodByFilter`) **MEMADAM** rekod ikut tahun —
+  bukan cara memulakan tahun baharu.
+- Belum ada proses Naik Tahun murid (Tahun +1; ENAM → TAMAT, jangan padam —
+  jantina diperlukan untuk dashboard tahun lepas).
+- Menambah `tahun_rekod` pada query sedia ada yang ada `orderBy` perlukan index
+  komposit baharu (`firestore.indexes.json`).
+
+Soalan belum dijawab pengguna: nama kelas kekal semasa naik Tahun? ENAM → TAMAT?

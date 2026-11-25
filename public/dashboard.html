@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Pelaporan PBD 2026 — SK Sultan Ismail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0e1a2b; --gold:#c9a24a; --gold-soft:#e8d6a6;
+  --paper:#f5f2ea; --surface:#fcfcfb; --line:#e4dfd3; --soft:#f1eee6;
+  --text:#0b0b0b; --text-2:#52514e; --muted:#8a877f;
+  --tp1:#b42f2f; --tp2:#e98a85; --tp3:#86b6ef; --tp4:#3987e5; --tp5:#1c5cab; --tp6:#0d366b;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  --serif:'Fraunces', Georgia, serif; --sans:'Plus Jakarta Sans', system-ui, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--paper);color:var(--text);-webkit-font-smoothing:antialiased}
+.num{font-variant-numeric:tabular-nums}
+
+/* ── Bar atas ── */
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:18px;padding:14px 40px;
+  background:rgba(14,26,43,.94);backdrop-filter:blur(10px);color:#fff;border-bottom:1px solid rgba(201,162,74,.25)}
+.crest{width:38px;height:38px;flex:none}
+.brand b{display:block;font-family:var(--serif);font-weight:600;font-size:17px}
+.brand span{font-size:11px;letter-spacing:2.2px;text-transform:uppercase;color:var(--gold-soft);opacity:.8}
+.toc{display:flex;gap:4px;margin-left:24px}
+.toc a{color:rgba(255,255,255,.6);text-decoration:none;font-size:12.5px;padding:6px 10px;border-radius:6px;transition:.15s}
+.toc a:hover{color:#fff;background:rgba(255,255,255,.07)}
+.filters{margin-left:auto;display:flex;gap:10px;align-items:center}
+.seg-toggle{display:flex;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:3px}
+.seg-toggle button{border:0;background:none;color:rgba(255,255,255,.65);font:600 12px var(--sans);padding:6px 12px;border-radius:999px;cursor:pointer}
+.seg-toggle button.on{background:#fff;color:var(--ink)}
+.btn-present{background:var(--gold);color:var(--ink);border:0;border-radius:999px;padding:9px 18px;font:700 13px var(--sans);cursor:pointer;transition:.2s}
+.btn-present:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(201,162,74,.4)}
+
+/* ── Hero ── */
+.hero{position:relative;overflow:hidden;background:var(--ink);color:#fff;padding:60px 40px 0}
+.hero::before{content:"";position:absolute;inset:0;opacity:.5;
+  background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:48px 48px;mask-image:radial-gradient(ellipse at 70% 30%,#000 20%,transparent 75%)}
+.hero::after{content:"";position:absolute;right:-180px;top:-220px;width:620px;height:620px;border-radius:50%;
+  background:radial-gradient(circle,rgba(201,162,74,.22),transparent 65%)}
+.hero-inner{position:relative;z-index:1;max-width:1240px;margin:0 auto}
+.hero-top{display:grid;grid-template-columns:1fr 340px;gap:40px;align-items:center}
+.ring{position:relative;width:320px;height:320px;animation:rise 1s cubic-bezier(.2,.8,.2,1) both .3s}
+.ring svg{width:100%;height:100%}
+.ring .ctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}
+.ring .ctr b{font-family:var(--serif);font-size:50px;font-weight:600;letter-spacing:-1px}
+.ring .ctr span{font-size:11px;letter-spacing:2px;color:rgba(255,255,255,.55);text-transform:uppercase;margin-top:4px}
+.ring-key{display:flex;flex-direction:column;gap:3px;margin-top:12px;font-size:11.5px;color:rgba(255,255,255,.75);text-align:left}
+.ring-key i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.eyebrow{display:inline-flex;gap:10px;align-items:center;font-size:11.5px;letter-spacing:2.6px;text-transform:uppercase;color:var(--gold-soft)}
+.eyebrow::before{content:"";width:28px;height:1px;background:var(--gold)}
+.dash-title{font-family:var(--serif);font-size:22px;font-weight:600;letter-spacing:.3px;margin-bottom:18px;color:#fff;text-transform:uppercase}
+.dash-title .yr{color:var(--gold);margin-left:6px}
+.yr-pick{display:flex;align-items:center;gap:8px;background:rgba(201,162,74,.12);border:1px solid rgba(201,162,74,.45);border-radius:999px;padding:4px 6px 4px 14px;font:600 11px var(--sans);letter-spacing:1.5px;text-transform:uppercase;color:var(--gold-soft)}
+.yr-pick select{appearance:none;background:var(--gold);color:var(--ink);border:0;border-radius:999px;padding:5px 14px;font:700 13px var(--sans);cursor:pointer}
+.kosong{display:none;max-width:640px;margin:90px auto;text-align:center;padding:50px 40px;background:var(--surface);border:1px dashed var(--line);border-radius:20px}
+.kosong b{display:block;font-family:var(--serif);font-size:30px;margin-bottom:10px}
+.kosong p{color:var(--text-2);line-height:1.6;font-size:14.5px}
+body.tiada-data .kosong{display:block}
+body.tiada-data .hero, body.tiada-data main > :not(.kosong){display:none}
+.real-tag{margin-left:8px;padding:3px 9px;border:1px solid rgba(12,163,12,.6);border-radius:4px;color:#8fe08f;letter-spacing:1.5px;font-size:10px}
+.hero h1{font-family:var(--serif);font-weight:400;font-size:clamp(34px,4.2vw,56px);line-height:1.08;margin:22px 0 18px;letter-spacing:-.5px}
+.hero h1 .big{font-weight:700;color:var(--gold);font-size:1.5em;display:inline-block;letter-spacing:-2px}
+.hero p.lead{font-size:17px;color:rgba(255,255,255,.72);max-width:660px;line-height:1.6}
+.hero p.lead b{color:#fff}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);margin-top:52px;border-top:1px solid rgba(255,255,255,.1)}
+.kpi{padding:26px 24px 32px;border-right:1px solid rgba(255,255,255,.1)}
+.kpi:last-child{border-right:0}
+.kpi .lbl{font-size:11.5px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.55)}
+.kpi .val{font-family:var(--serif);font-size:40px;font-weight:600;margin-top:10px;letter-spacing:-1px}
+.kpi .val small{font-size:18px;color:rgba(255,255,255,.5);font-weight:400;margin-left:2px}
+.kpi .sub{font-size:12.5px;color:rgba(255,255,255,.55);margin-top:6px}
+
+/* ── Kandungan ── */
+main{max-width:1240px;margin:0 auto;padding:48px 40px 40px}
+.chapter{display:flex;align-items:center;gap:14px;margin:56px 0 22px;font-size:11.5px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);font-weight:600;scroll-margin-top:90px}
+.chapter::after{content:"";flex:1;height:1px;background:var(--line)}
+.chapter:first-child{margin-top:0}
+.chapter .lock{letter-spacing:1px;color:var(--serious);border:1px solid var(--serious);border-radius:999px;padding:2px 9px;font-size:10px}
+.sec{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:32px 34px;margin-bottom:26px;
+  box-shadow:0 20px 40px -30px rgba(14,26,43,.25);animation:rise .8s cubic-bezier(.2,.8,.2,1) both;scroll-margin-top:90px}
+.sec-head{display:flex;align-items:flex-end;gap:18px;margin-bottom:24px}
+.sec-no{font-family:var(--serif);font-size:44px;line-height:.8;color:var(--gold)}
+.sec-head h2{font-family:var(--serif);font-weight:600;font-size:23px;letter-spacing:-.2px}
+.sec-head p{font-size:14px;color:var(--text-2);margin-top:4px;line-height:1.5}
+.sec-head .right{margin-left:auto;text-align:right}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.so-what{margin-top:22px;padding:14px 18px;border-left:3px solid var(--gold);background:#faf6ea;border-radius:0 10px 10px 0;font-size:14px;line-height:1.6}
+.so-what b{color:#7d6224}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--text-2);justify-content:flex-end}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.sub-h{font-size:11.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 12px}
+body.luaran .internal{display:none !important}
+
+/* dapatan */
+.insights{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.ins{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 22px 24px;position:relative;overflow:hidden;animation:rise .8s cubic-bezier(.2,.8,.2,1) both}
+.ins::before{content:"";position:absolute;left:0;top:0;right:0;height:4px;background:var(--c)}
+.ins .tag{display:inline-flex;align-items:center;gap:7px;font-size:11px;letter-spacing:1.6px;font-weight:700;color:var(--text-2)}
+.ins .tag i{width:20px;height:20px;border-radius:50%;background:var(--c);color:#fff;display:grid;place-items:center;font-style:normal;font-size:11px}
+.ins .big{font-family:var(--serif);font-size:38px;font-weight:600;margin:14px 0 6px;letter-spacing:-1px}
+.ins .big small{font:500 14px var(--sans);color:var(--muted);margin-left:4px;letter-spacing:0}
+.ins p{font-size:13.5px;color:var(--text-2);line-height:1.55}
+.ins p b{color:var(--text)}
+
+/* kad skor */
+.score{width:100%;border-collapse:collapse;font-size:13.5px}
+.score th{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);font-weight:700;text-align:right;padding:0 10px 10px;border-bottom:1px solid var(--line);cursor:pointer;user-select:none;white-space:nowrap}
+.score th:first-child,.score th:nth-child(2){text-align:left}
+.score th.on{color:var(--ink)}
+.score td{padding:9px 10px;border-bottom:1px solid #efebe1;text-align:right;font-variant-numeric:tabular-nums}
+.score td:first-child{text-align:left;white-space:nowrap}
+.score tr.row{cursor:pointer;transition:background .12s}
+.score tr.row:hover{background:#faf6ea}
+.score .kod{display:inline-block;min-width:48px;font-weight:700}
+.score .nm{color:var(--text-2);font-size:12.5px}
+.score .tr-badge{font-size:9.5px;letter-spacing:1px;color:var(--gold);border:1px solid var(--gold);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:2px}
+.stack{display:flex;height:16px;border-radius:4px;overflow:hidden;gap:1px;min-width:200px;background:var(--surface)}
+.stack i{display:block;height:100%}
+.score .big{font-family:var(--serif);font-size:17px;font-weight:600}
+.score .lo{color:var(--crit);font-weight:600}
+
+/* heatmap */
+.heat{display:grid;gap:4px;font-size:13px}
+.heat .h{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-align:center;padding-bottom:6px;font-weight:600;align-self:end}
+.heat .s{display:flex;align-items:center;font-weight:600;font-size:13px;padding-right:8px;white-space:nowrap}
+.heat .c{height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:600;font-variant-numeric:tabular-nums;cursor:default;transition:transform .15s, box-shadow .15s}
+.heat .c:hover{transform:scale(1.06);box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink);position:relative;z-index:2}
+.heat .na{background:repeating-linear-gradient(45deg,#f1eee6 0 6px,#e9e5db 6px 7px);color:var(--muted);font-weight:500;font-size:11px}
+.scale{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text-2)}
+.scale .bar{width:160px;height:10px;border-radius:5px;background:linear-gradient(90deg,#cde2fb,#86b6ef,#3987e5,#1c5cab,#0d366b)}
+
+/* analisis subjek */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:26px}
+.chips.tapis{margin-bottom:18px;align-items:center}
+.chips.tapis .chip small{font-weight:500;opacity:.65;margin-left:4px}
+.chips.tapis .sep{width:1px;height:20px;background:var(--line);margin:0 4px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;font:600 12.5px var(--sans);cursor:pointer;color:var(--text-2);transition:.15s}
+.chip:hover{border-color:var(--ink);color:var(--ink)}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chip .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gold);margin-left:6px;vertical-align:2px}
+.sd-title{display:flex;align-items:baseline;gap:14px;margin-bottom:18px}
+.sd-title h3{font-family:var(--serif);font-size:32px;font-weight:600;letter-spacing:-.5px}
+.sd-title span{color:var(--muted);font-size:13px}
+.tiles{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:28px}
+.tile{background:#f8f6f0;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.tile .l{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.tile .v{font-family:var(--serif);font-size:28px;font-weight:600;margin-top:6px}
+.tile .v small{font:500 12px var(--sans);color:var(--muted);margin-left:3px}
+.tile .s{font-size:11.5px;color:var(--text-2);margin-top:2px}
+.sd-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:34px}
+.sd-block{margin-bottom:28px}
+.yr-row{display:grid;grid-template-columns:70px 1fr 48px;gap:12px;align-items:center;margin:8px 0;font-size:13px}
+.yr-row .stack{height:22px;min-width:0}
+.yr-row .v{text-align:right;font-family:var(--serif);font-weight:600;font-size:16px}
+.kls{max-height:430px;overflow:auto;padding-right:6px}
+.kls-row{display:grid;grid-template-columns:150px 1fr 40px;gap:10px;align-items:center;font-size:12.5px;margin:4px 0}
+.kls-row .tr{height:12px;background:#f1eee6;border-radius:3px;position:relative}
+.kls-row .tr i{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+.kls-row .v{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.kls-row.lo .n{color:var(--crit);font-weight:600}
+.unit{list-style:none}
+.unit li{display:grid;grid-template-columns:1fr auto;gap:12px;padding:10px 0;border-bottom:1px solid #efebe1;font-size:13px;align-items:center}
+.unit li:last-child{border-bottom:0}
+.unit .u{line-height:1.4}
+.unit .u small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+.unit .p{text-align:right;font-family:var(--serif);font-weight:600;font-size:17px}
+.unit .p small{display:block;font:600 11px var(--sans);color:var(--crit)}
+.svg-wrap svg{width:100%;height:auto;display:block;overflow:visible}
+.svg-wrap text{font-family:var(--sans)}
+
+/* penarafan */
+.rate-row{display:grid;grid-template-columns:170px 1fr 50px 50px;gap:14px;align-items:center;font-size:13px;margin:6px 0}
+.rate-row .tr{height:18px;position:relative}
+.rate-row .tr i{position:absolute;left:0;top:0;bottom:0;border-radius:0 4px 4px 0;background:var(--tp6)}
+.rate-row .tr .med{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--gold)}
+.rate-row .v{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.rate-row .p{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+.rate-head{display:grid;grid-template-columns:170px 1fr 50px 50px;gap:14px;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px}
+.rate-head span:nth-child(n+3){text-align:right}
+
+/* berisiko */
+.risk-top{display:flex;align-items:baseline;gap:14px;margin-bottom:18px}
+.risk-top .n{font-family:var(--serif);font-size:64px;font-weight:600;color:var(--tp1);letter-spacing:-2px;line-height:1}
+.risk-top p{font-size:14px;color:var(--text-2);line-height:1.5}
+.hbar{display:grid;grid-template-columns:78px 1fr 46px;gap:12px;align-items:center;font-size:13px;margin:7px 0}
+.hbar .tr{height:16px;background:#f1eee6;border-radius:4px;overflow:hidden}
+.hbar .tr i{display:block;height:100%;border-radius:0 4px 4px 0}
+.hbar .v{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+
+/* cadangan */
+.actions{background:var(--ink);color:#fff;border-radius:22px;padding:44px 46px;margin-top:10px;position:relative;overflow:hidden;scroll-margin-top:90px}
+.actions::after{content:"";position:absolute;left:-120px;bottom:-200px;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(201,162,74,.18),transparent 65%)}
+.actions h2{font-family:var(--serif);font-weight:400;font-size:34px;margin:14px 0 6px;position:relative}
+.actions > p{color:rgba(255,255,255,.6);font-size:14.5px;position:relative}
+.act-list{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:30px;position:relative;z-index:1}
+.act{border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:22px 24px;background:rgba(255,255,255,.03)}
+.act .k{font-family:var(--serif);color:var(--gold);font-size:30px;line-height:1}
+.act h3{font-size:16px;font-weight:700;margin:12px 0 8px}
+.act p{font-size:13.5px;color:rgba(255,255,255,.7);line-height:1.6}
+.act .who{display:inline-block;margin-top:12px;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold-soft);border:1px solid rgba(201,162,74,.35);padding:4px 10px;border-radius:999px}
+
+footer{max-width:1240px;margin:0 auto;padding:30px 40px 60px;display:grid;grid-template-columns:1fr auto;gap:30px;color:var(--text-2);font-size:13px;line-height:1.7}
+footer b{color:var(--text)}
+.sign{text-align:right;font-family:var(--serif);font-size:15px;color:var(--text)}
+.sign span{display:block;font:400 12px var(--sans);color:var(--muted)}
+
+#tip{position:fixed;pointer-events:none;z-index:99;background:var(--ink);color:#fff;padding:10px 13px;border-radius:9px;font-size:12.5px;line-height:1.5;
+  box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;transform:translateY(4px);transition:opacity .12s, transform .12s;max-width:280px}
+#tip.on{opacity:1;transform:none}
+#tip b{color:var(--gold-soft);font-weight:600}
+
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.hero h1,.hero .lead,.kpis{animation:rise .9s cubic-bezier(.2,.8,.2,1) both}
+.hero .lead{animation-delay:.1s}.kpis{animation-delay:.26s}
+
+body.present .toc{display:none}
+body.present main{max-width:1440px}
+body.present [data-slide]:not(.hero){min-height:calc(100vh - 120px);display:flex;flex-direction:column;justify-content:center}
+body.present .grid-2{grid-template-columns:1fr}
+body.present .hero{min-height:calc(100vh - 66px);display:flex;flex-direction:column;justify-content:center}
+.pager{position:fixed;right:28px;bottom:28px;display:none;gap:8px;z-index:30}
+body.present .pager{display:flex}
+.pager button{width:44px;height:44px;border-radius:50%;border:0;background:var(--ink);color:var(--gold);font-size:18px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+
+@media (max-width:1100px){ .toc{display:none} .insights{grid-template-columns:repeat(2,1fr)} .kpis{grid-template-columns:repeat(3,1fr)} .tiles{grid-template-columns:repeat(3,1fr)} }
+@media (max-width:900px){
+  .hero-top,.grid-2,.act-list,.sd-grid,.flags{grid-template-columns:1fr} .ring{display:none}
+  .topbar,.hero,main,footer{padding-left:20px;padding-right:20px}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <svg class="crest" viewBox="0 0 40 40" aria-hidden="true">
+    <path d="M20 2 L36 8 V20 C36 29 29 35 20 38 C11 35 4 29 4 20 V8 Z" fill="none" stroke="#c9a24a" stroke-width="1.6"/>
+    <path d="M20 7 L31 11 V20 C31 26.5 26.5 30.8 20 33 C13.5 30.8 9 26.5 9 20 V11 Z" fill="#c9a24a" opacity=".14"/>
+    <text x="20" y="25" text-anchor="middle" font-family="Fraunces,serif" font-weight="700" font-size="13" fill="#e8d6a6">SI</text>
+  </svg>
+  <div class="brand"><b>SK Sultan Ismail</b><span>Dashboard Pelaporan PBD</span></div>
+  <nav class="toc">
+    <a href="#dapatan">Dapatan</a><a href="#s01">Kad Skor</a><a href="#s02">Peta</a><a href="#s03">Subjek</a>
+    <a href="#s04">Penarafan</a><a href="#s05">Risiko</a><a href="#cadangan">Cadangan</a>
+  </nav>
+  <div class="filters">
+    <label class="yr-pick" title="Tahun persekolahan (tahun_rekod)"><span>Sesi</span><select id="yrSel"></select></label>
+    <div class="seg-toggle" title="Luaran menyembunyikan bahagian kualiti data dalaman">
+      <button id="vDalam" class="on">Dalaman</button><button id="vLuar">Luaran</button>
+    </div>
+    <button class="btn-present" id="btnPresent">▶ Mod Pembentangan</button>
+  </div>
+</header>
+
+<section class="hero" data-slide>
+  <div class="hero-inner hero-top"><div>
+    <div class="dash-title">Dashboard Pelaporan PBD <span class="yr num" id="heroYr">2026</span></div>
+    <div class="eyebrow"><span id="heroDate"></span> <span class="real-tag">● DATA SEBENAR</span></div>
+    <h1><span class="big num" id="heroPct">—</span><br>murid mencapai tahap cemerlang</h1>
+    <p class="lead" id="heroLead"></p>
+  </div>
+  <div class="ring" id="ring"></div></div>
+  <div class="hero-inner kpis" id="kpis"></div>
+</section>
+
+<main>
+  <div class="kosong"><b>Tiada rekod bagi sesi <span id="kosongYr"></span></b>
+    <p>Dashboard hanya memaparkan rekod dengan <code>tahun_rekod</code> yang dipilih. Rekod sesi lain tidak dipadam — pilih semula sesi di atas untuk melihatnya.</p></div>
+  <div class="chapter" id="dapatan">Dapatan Utama</div>
+  <div class="insights" id="insights" data-slide></div>
+
+  <div class="chapter">Bahagian A · Gambaran Semua Subjek</div>
+
+  <section class="sec" id="s01" data-slide>
+    <div class="sec-head">
+      <div class="sec-no">01</div>
+      <div><h2>Kad Skor Subjek</h2><p>Satu baris satu subjek. Taburan ikut purata TP setiap murid dalam subjek itu. Tapis ikut Tahap / Tahun · klik baris untuk analisis terperinci · klik tajuk lajur untuk susun.</p></div>
+      <div class="right legend">
+        <span><i style="background:var(--tp1)"></i>TP1</span><span><i style="background:var(--tp2)"></i>TP2</span>
+        <span><i style="background:var(--tp3)"></i>TP3</span><span><i style="background:var(--tp4)"></i>TP4</span>
+        <span><i style="background:var(--tp5)"></i>TP5</span><span><i style="background:var(--tp6)"></i>TP6</span>
+      </div>
+    </div>
+    <div class="chips tapis" id="scoreTapis"></div>
+    <table class="score" id="score"></table>
+    <div class="so-what" id="sw01"></div>
+  </section>
+
+  <section class="sec" id="s02" data-slide>
+    <div class="sec-head">
+      <div class="sec-no">02</div>
+      <div><h2>Peta Subjek × Tahun</h2><p>Purata TP setiap subjek mengikut Tahun. Sel lebih gelap = penguasaan lebih tinggi. Cari lajur atau baris yang cerah.</p></div>
+      <div class="right scale"><span id="hLo"></span><span class="bar"></span><span id="hHi"></span></div>
+    </div>
+    <div class="heat" id="heat"></div>
+    <div class="so-what" id="sw02"></div>
+  </section>
+
+  <div class="chapter">Bahagian B · Analisis Mendalam Subjek</div>
+
+  <section class="sec" id="s03" data-slide>
+    <div class="sec-head">
+      <div class="sec-no">03</div>
+      <div><h2>Analisis Subjek</h2><p>Pilih subjek. ● = subjek teras.</p></div>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div id="sd"></div>
+  </section>
+
+  <div class="chapter">Bahagian C · Penarafan &amp; Murid Berisiko</div>
+
+  <div class="grid-2" style="margin-bottom:26px">
+    <section class="sec" id="s04" data-slide style="margin-bottom:0">
+      <div class="sec-head">
+        <div class="sec-no">04</div>
+        <div><h2>Keseragaman Penarafan</h2><p>% penilaian yang diberi <b>TP6</b> dalam setiap subjek. Garis emas = median sekolah.</p></div>
+      </div>
+      <div class="rate-head"><span>Subjek</span><span></span><span>TP6</span><span>Purata</span></div>
+      <div id="rate"></div>
+      <div class="so-what" id="sw04"></div>
+    </section>
+    <section class="sec" id="s05" data-slide style="margin-bottom:0">
+      <div class="sec-head">
+        <div class="sec-no">05</div>
+        <div><h2>Murid Berisiko</h2><p>Purata TP1–TP2 dalam <b>dua atau lebih</b> subjek teras (BM, BI, MT, SN; termasuk DLP).</p></div>
+      </div>
+      <div class="risk-top"><div class="n num" id="riskN"></div><p id="riskTxt"></p></div>
+      <div class="sub-h">Mengikut Tahun</div><div id="riskTahun"></div>
+      <div class="sub-h" style="margin-top:20px">Subjek teras yang lemah</div><div id="riskSubj"></div>
+    </section>
+  </div>
+
+  <section class="actions" id="cadangan" data-slide>
+    <div class="eyebrow">Langkah Seterusnya</div>
+    <h2>Cadangan Tindakan</h2>
+    <p>Dijana daripada data sebenar di atas — untuk mesyuarat panitia dan JK Kurikulum.</p>
+    <div class="act-list" id="actList"></div>
+  </section>
+</main>
+
+<footer>
+  <div><b>Nota metodologi.</b> TP murid dalam satu subjek = purata topik yang benar-benar dinilai (topik tanpa rekod tidak masuk pembahagi), dibundar standard, had TP1–TP6 — sama seperti angka ke SPPB. "Cemerlang" = TP5–TP6; "Menguasai" = TP3 ke atas. Sumber: <code>rekod_pbd</code>, <code>murid</code>, <code>topik_pembelajaran</code>.</div>
+  <div class="sign">Unit Kurikulum<span>Sistem Rekod PBD · hipersispbd.web.app</span></div>
+</footer>
+
+<div class="pager"><button id="pgUp" aria-label="Sebelum">↑</button><button id="pgDn" aria-label="Seterusnya">↓</button></div>
+<div id="tip"></div>
+
+<script src="js/dashboard-data.js"></script>
+<script>
+const T = ['SATU','DUA','TIGA','EMPAT','LIMA','ENAM'];
+const TN = {SATU:1,DUA:2,TIGA:3,EMPAT:4,LIMA:5,ENAM:6};
+const TP_COL = ['var(--tp1)','var(--tp2)','var(--tp3)','var(--tp4)','var(--tp5)','var(--tp6)'];
+const RAMP = ['#cde2fb','#b7d3f6','#9ec5f4','#86b6ef','#6da7ec','#5598e7','#3987e5','#2a78d6','#256abf','#1c5cab','#184f95','#104281','#0d366b'];
+const BULAN = ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogo','Sep','Okt','Nov'];
+const sum = a => a.reduce((x, y) => x + y, 0);
+const avgH = h => { const n = sum(h); return n ? h.reduce((a, b, i) => a + b * (i + 1), 0) / n : null; };
+const pctH = (h, a, b) => { const n = sum(h); return n ? sum(h.slice(a - 1, b)) / n * 100 : 0; };
+const fmt = n => n.toLocaleString('ms-MY');
+const $ = id => document.getElementById(id);
+const median = a => { const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const stack = h => { const n = sum(h); return `<div class="stack">${h.map((c, i) => c ? `<i style="width:${c / n * 100}%;background:${TP_COL[i]}"></i>` : '').join('')}</div>`; };
+
+// ── Terbitan ──
+const SUB = DATA.subjek.map(s => ({...s,
+  purata: avgH(s.hist), murid: sum(s.muridHist),
+  cem: pctH(s.muridHist, 5, 6), lemah: s.muridHist[0] + s.muridHist[1],
+  tp6: pctH(s.hist, 6, 6),
+  kpL: s.jantina.L[0] ? s.jantina.L[1] / s.jantina.L[0] * 100 : null,
+  kpP: s.jantina.P[0] ? s.jantina.P[1] / s.jantina.P[0] * 100 : null,
+}));
+SUB.forEach(s => { if (s.nama === s.kod) s.nama = 'Pendidikan Jasmani & Kesihatan'; });
+const byKod = Object.fromEntries(SUB.map(s => [s.kod, s]));
+const K = DATA.keseluruhan, NM = sum(K);
+const semuaHist = [0,1,2,3,4,5].map(i => sum(SUB.map(s => s.hist[i])));
+const purataSek = avgH(semuaHist);
+const teras = SUB.filter(s => s.teras && !['MATH','SCI'].includes(s.kod));
+const cmpP = (a, b) => a.purata - b.purata;
+const terasRendah = [...teras].sort(cmpP)[0], terasTinggi = [...teras].sort(cmpP).at(-1);
+const tp6s = SUB.filter(s => s.murid > 50).sort((a, b) => b.tp6 - a.tp6);
+
+// ── Tooltip ──
+const tip = $('tip');
+document.addEventListener('mousemove', e => {
+  const el = e.target.closest('[data-tip]');
+  if (!el) { tip.classList.remove('on'); return; }
+  tip.innerHTML = el.dataset.tip; tip.classList.add('on');
+  tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 10) + 'px';
+  tip.style.top = (e.clientY + 16) + 'px';
+});
+
+// ════════════ HERO ════════════
+const cemP = pctH(K, 5, 6), kuasaP = pctH(K, 3, 6);
+// ── Penapis sesi: lalai = config.tahunSemasa; senarai = tahun_rekod yang wujud ──
+// (Mockup: hanya 2026 ada data. 2025 dipaparkan untuk menunjukkan keadaan tahun tanpa rekod.)
+const TAHUN_SEMASA = '2026', TAHUN_ADA = ['2026'];
+$('yrSel').innerHTML = [...new Set([...TAHUN_ADA, '2025'])].sort().reverse()
+  .map(y => `<option value="${y}" ${y === TAHUN_SEMASA ? 'selected' : ''}>${y}</option>`).join('');
+$('yrSel').onchange = e => { const y = e.target.value;
+  document.body.classList.toggle('tiada-data', !TAHUN_ADA.includes(y));
+  $('kosongYr').textContent = y; $('heroYr').textContent = y;
+  document.title = `Dashboard Pelaporan PBD ${y} — SK Sultan Ismail`; };
+$('heroDate').textContent = 'Sesi 2026 · data diimbas ' + new Date(DATA.dijana).toLocaleDateString('ms-MY', {day:'numeric', month:'short', year:'numeric'});
+$('heroLead').innerHTML = `Purata TP5 ke atas merentasi semua subjek. <b>${kuasaP.toFixed(1)}%</b> murid sudah menguasai (TP3+) — jadi ukuran sebenar sekolah kini ialah berapa ramai mencapai tahap <b>cemerlang</b>. ${fmt(NM)} murid · ${SUB.length} subjek · ${fmt(DATA.rekodN)} rekod pentaksiran.`;
+(function countUp(){
+  const el = $('heroPct'), t0 = performance.now();
+  (function f(t){ const p = Math.min(1, (t - t0) / 1400), e = 1 - Math.pow(1 - p, 3);
+    el.textContent = (cemP * e).toFixed(1) + '%'; if (p < 1) requestAnimationFrame(f); })(t0);
+})();
+(function ring(){
+  const parts = [{n: K[4] + K[5], c:'#c9a24a', l:'Cemerlang (TP5–6)'}, {n: K[2] + K[3], c:'#86b6ef', l:'Menguasai (TP3–4)'}, {n: K[0] + K[1], c:'#e98a85', l:'Belum menguasai (TP1–2)'}];
+  const R = 140, C = 2 * Math.PI * R, gap = 4; let off = 0, arcs = '';
+  parts.forEach(p => { if (!p.n) return; const len = Math.max(1, p.n / NM * C - gap);
+    arcs += `<circle cx="160" cy="160" r="${R}" fill="none" stroke="${p.c}" stroke-width="18" stroke-linecap="round" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 160 160)" data-tip="<b>${p.l}</b><br>${fmt(p.n)} murid (${(p.n / NM * 100).toFixed(1)}%)"/>`;
+    off += p.n / NM * C; });
+  $('ring').innerHTML = `<svg viewBox="0 0 320 320"><circle cx="160" cy="160" r="${R}" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="18"/>${arcs}</svg>
+    <div class="ctr"><b class="num">${fmt(K[4] + K[5])}</b><span>daripada ${fmt(NM)} murid</span>
+    <div class="ring-key">${parts.map(p => `<span><i style="background:${p.c}"></i>${p.l.split(' (')[0]} · ${fmt(p.n)}</span>`).join('')}</div></div>`;
+})();
+$('kpis').innerHTML = [
+  {lbl:'Purata TP Sekolah', val: purataSek.toFixed(2), unit:'/ 6', sub:'semua penilaian, semua subjek'},
+  {lbl:'Murid Menguasai', val: kuasaP.toFixed(1), unit:'%', sub:'TP3 ke atas'},
+  {lbl:'Rekod PBD', val: fmt(DATA.rekodN), unit:'', sub: SUB.length + ' subjek'},
+  {lbl:'Subjek Teras Terendah', val: terasRendah.kod, unit: ' ' + terasRendah.purata.toFixed(2), sub:'purata TP'},
+  {lbl:'Murid Berisiko', val: fmt(DATA.risk.jum), unit:'', sub:'TP1–2 dalam ≥2 subjek teras'},
+].map(k => `<div class="kpi"><div class="lbl">${k.lbl}</div><div class="val num">${k.val}<small>${k.unit}</small></div><div class="sub">${k.sub}</div></div>`).join('');
+
+// ════════════ DAPATAN UTAMA ════════════
+const rt = DATA.risk.tahun, rTop = Object.entries(rt).sort((a, b) => b[1] - a[1])[0];
+$('insights').innerHTML = [
+  {c:'var(--good)', i:'✓', tag:'KEKUATAN', big: terasTinggi.purata.toFixed(2), unit: terasTinggi.kod,
+   p:`<b>${terasTinggi.nama}</b> mencatat purata TP tertinggi antara subjek teras; ${terasTinggi.cem.toFixed(0)}% murid cemerlang.`},
+  {c:'var(--crit)', i:'!', tag:'TUMPUAN', big: terasRendah.purata.toFixed(2), unit: terasRendah.kod,
+   p:`<b>${terasRendah.nama}</b> terendah antara subjek teras — hanya ${terasRendah.cem.toFixed(0)}% murid cemerlang, dan rendah di hampir setiap Tahun.`},
+  {c:'var(--serious)', i:TN[rTop[0]], tag:'TAHUN ' + TN[rTop[0]], big: rTop[1], unit:`daripada ${DATA.risk.jum}`,
+   p:`murid berisiko berada di <b>Tahun ${TN[rTop[0]]}</b>. Kelemahan tertumpu pada BM (${DATA.risk.subj.BM}) dan BI (${DATA.risk.subj.BI}) — literasi asas.`},
+  {c:'var(--gold)', i:'≠', tag:'PENARAFAN', big: tp6s.at(-1).tp6.toFixed(0) + '–' + tp6s[0].tp6.toFixed(0), unit:'% TP6',
+   p:`Kadar TP6 berbeza besar: <b>${tp6s.at(-1).kod}</b> ${tp6s.at(-1).tp6.toFixed(0)}% berbanding <b>${tp6s[0].kod}</b> ${tp6s[0].tp6.toFixed(0)}%. Perlu penyelarasan antara panitia.`},
+].map((d, i) => `<div class="ins" style="--c:${d.c};animation-delay:${i * .07}s"><div class="tag"><i>${d.i}</i>${d.tag}</div>
+  <div class="big num">${d.big}<small>${d.unit}</small></div><p>${d.p}</p></div>`).join('');
+
+// ════════════ 01 Kad skor ════════════
+let sortKey = 'purata', sortDir = -1;
+const COLS = [
+  {k:'kod', h:'Subjek'}, {k:null, h:'Taburan murid (TP1 → TP6)'}, {k:'purata', h:'Purata TP'}, {k:'cem', h:'% Cemerlang'},
+  {k:'lemah', h:'Murid TP1–2'}, {k:'murid', h:'Murid'}, {k:'kelasN', h:'Kelas'}, {k:'rekod', h:'Rekod'}];
+SUB.forEach(s => s.kelasN = s.kelas.length);
+// Penapis Tahun: setiap murid dikira dalam Tahunnya sahaja, jadi jumlah T1..T6 = Semua
+const TAPIS = [{k:'semua', l:'Semua', t:T}, {k:'tp1', l:'Tahap 1', s:'T1–3', t:T.slice(0, 3)}, {k:'tp2', l:'Tahap 2', s:'T4–6', t:T.slice(3)},
+  ...T.map(t => ({k:t, l:'Tahun ' + TN[t], t:[t]}))];
+let tapis = 'semua';
+function lihatSubjek(s) {
+  const ts = TAPIS.find(x => x.k === tapis).t, i6 = [0,1,2,3,4,5];
+  const mh = i6.map(i => sum(ts.map(t => s.tahunMurid[t]?.[i] || 0)));
+  const eh = i6.map(i => sum(ts.map(t => s.tahun[t]?.[i] || 0)));
+  const kl = s.kelas.filter(k => ts.includes(k.t));
+  if (!sum(mh)) return null;
+  return {kod: s.kod, nama: s.nama, teras: s.teras, muridHist: mh, purata: avgH(eh), cem: pctH(mh, 5, 6),
+    lemah: mh[0] + mh[1], murid: sum(mh), kelasN: kl.length, rekod: sum(kl.map(k => k.r))};
+}
+$('scoreTapis').innerHTML = TAPIS.map((f, i) => (i === 3 || i === 1 ? '<span class="sep"></span>' : '') +
+  `<button class="chip ${f.k === tapis ? 'on' : ''}" data-k="${f.k}">${f.l}${f.s ? `<small>${f.s}</small>` : ''}</button>`).join('');
+$('scoreTapis').addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return;
+  tapis = b.dataset.k; $('scoreTapis').querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === b)); renderScore(); });
+function renderScore() {
+  const rows = SUB.map(lihatSubjek).filter(Boolean).sort((a, b) => (typeof a[sortKey] === 'string' ? a[sortKey].localeCompare(b[sortKey]) : a[sortKey] - b[sortKey]) * sortDir);
+  $('score').innerHTML = `<tr>${COLS.map(c => `<th data-k="${c.k || ''}" class="${c.k === sortKey ? 'on' : ''}">${c.h}${c.k === sortKey ? (sortDir < 0 ? ' ↓' : ' ↑') : ''}</th>`).join('')}</tr>` +
+    rows.map(s => `<tr class="row" data-kod="${s.kod}">
+      <td><span class="kod">${s.kod}</span><span class="nm">${s.nama}</span>${s.teras ? '<span class="tr-badge">TERAS</span>' : ''}</td>
+      <td data-tip="<b>${s.nama}</b><br>${s.muridHist.map((c, i) => `TP${i + 1}: ${c} murid`).join('<br>')}">${stack(s.muridHist)}</td>
+      <td class="big">${s.purata.toFixed(2)}</td><td>${s.cem.toFixed(1)}%</td>
+      <td class="${s.lemah ? 'lo' : ''}">${s.lemah || '—'}</td><td>${fmt(s.murid)}</td><td>${s.kelasN}</td><td>${fmt(s.rekod)}</td></tr>`).join('');
+  const f = TAPIS.find(x => x.k === tapis);
+  const tr = rows.filter(r => r.teras && !['MATH','SCI'].includes(r.kod)).sort(cmpP);
+  const lemahMax = [...rows].sort((a, b) => b.lemah - a.lemah)[0];
+  $('sw01').innerHTML = tapis === 'semua'
+    ? `<b>Maksudnya:</b> Hampir semua subjek mencatat 96–100% murid menguasai, jadi "% menguasai" tidak lagi membezakan prestasi. Bezanya terletak pada <b>purata TP</b> dan <b>% cemerlang</b> — subjek teras: ${tr.map(s => `${s.kod} ${s.purata.toFixed(2)}`).join(' · ')}.`
+    : `<b>Maksudnya (${f.l}${f.s ? ' · ' + f.s : ''}):</b> ${rows.length} subjek dinilai. Subjek teras: ${tr.map(s => `${s.kod} ${s.purata.toFixed(2)}`).join(' · ')}. ` +
+      (() => { const r = rows.filter(x => x.murid >= 20).sort(cmpP)[0]; // sampel kecil (cth PM 2 murid) mengelirukan
+        return r ? `Terendah keseluruhan: <b>${r.kod}</b> (${r.purata.toFixed(2)}).` : ''; })() +
+      (lemahMax.lemah ? ` Murid TP1–2 paling ramai dalam <b>${lemahMax.kod}</b> (${lemahMax.lemah} murid).` : ' Tiada murid TP1–2 dalam mana-mana subjek.');
+}
+$('score').addEventListener('click', e => {
+  const th = e.target.closest('th'); if (th && th.dataset.k) { const k = th.dataset.k;
+    sortDir = k === sortKey ? -sortDir : (k === 'kod' ? 1 : -1); sortKey = k; renderScore(); return; }
+  const tr = e.target.closest('tr.row'); if (tr) { pilihSubjek(tr.dataset.kod); $('s03').scrollIntoView({behavior:'smooth'}); }
+});
+renderScore();
+
+// ════════════ 02 Heatmap subjek × tahun ════════════
+(function(){
+  const order = [...SUB].sort((a, b) => b.teras - a.teras || b.murid - a.murid);
+  const cells = order.flatMap(s => T.filter(t => s.tahun[t]).map(t => avgH(s.tahun[t])));
+  const lo = Math.min(...cells), hi = Math.max(...cells);
+  $('hLo').textContent = lo.toFixed(1); $('hHi').textContent = hi.toFixed(1);
+  const el = $('heat'); el.style.gridTemplateColumns = `130px repeat(6, 1fr) 80px`;
+  let h = '<div></div>' + T.map(t => `<div class="h">Tahun ${TN[t]}</div>`).join('') + '<div class="h">Purata</div>';
+  order.forEach(s => {
+    h += `<div class="s" data-tip="<b>${s.nama}</b>">${s.kod}${s.teras ? '<span style="color:var(--gold);margin-left:6px">●</span>' : ''}</div>`;
+    T.forEach(t => {
+      const th = s.tahun[t];
+      if (!th) { h += `<div class="c na" data-tip="<b>${s.kod} · Tahun ${TN[t]}</b><br>Tiada rekod">—</div>`; return; }
+      const v = avgH(th), i = Math.round((v - lo) / (hi - lo) * (RAMP.length - 1));
+      h += `<div class="c num" style="background:${RAMP[i]};color:${i >= 6 ? '#fff' : 'var(--ink)'}"
+        data-tip="<b>${s.nama} · Tahun ${TN[t]}</b><br>Purata TP ${v.toFixed(2)}<br>${fmt(sum(th))} penilaian · ${pctH(th, 1, 2).toFixed(1)}% TP1–2">${v.toFixed(1)}</div>`;
+    });
+    h += `<div class="c num" style="background:var(--soft);font-family:var(--serif);font-size:15px">${s.purata.toFixed(2)}</div>`;
+  });
+  el.innerHTML = h;
+  const t1 = teras.filter(s => s.tahun.SATU).map(s => ({s, v: avgH(s.tahun.SATU)})).sort((a, b) => a.v - b.v);
+  $('sw02').innerHTML = `<b>Maksudnya:</b> Lajur <b>Tahun 1</b> paling cerah dalam kebanyakan subjek — ${t1.slice(0, 3).map(x => `${x.s.kod} ${x.v.toFixed(2)}`).join(', ')}. Murid baharu belum stabil dalam literasi dan numerasi asas. Baris <b>BI</b> pula cerah di hampir semua Tahun — isu peringkat subjek, bukan satu kohort.`;
+})();
+
+// ════════════ 03 Analisis subjek ════════════
+const chipOrder = [...SUB].sort((a, b) => b.teras - a.teras || b.murid - a.murid);
+$('chips').innerHTML = chipOrder.map(s => `<button class="chip" data-kod="${s.kod}">${s.kod}${s.teras ? '<span class="dot"></span>' : ''}</button>`).join('');
+$('chips').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) pilihSubjek(b.dataset.kod); });
+
+function pilihSubjek(kod) {
+  const s = byKod[kod];
+  document.querySelectorAll('#chips .chip').forEach(c => c.classList.toggle('on', c.dataset.kod === kod));
+  const tahunAda = T.filter(t => s.tahun[t]);
+  const tahunRank = tahunAda.map(t => ({t, v: avgH(s.tahun[t])})).sort((a, b) => a.v - b.v);
+  const kls = [...s.kelas].sort((a, b) => b.p - a.p);
+  const tanda = kls.length > 5 ? new Set(kls.slice(-3).map(k => k.k)) : new Set();
+  const bulanArr = BULAN.map((b, i) => s.bulan['2026-' + String(i + 1).padStart(2, '0')] || 0);
+  const maxB = Math.max(...bulanArr);
+  const unitTop = s.unit[0];
+
+  const W = 520, H = 110, bw = W / bulanArr.length;
+  const bulanSvg = `<svg viewBox="0 0 ${W} ${H + 22}">${bulanArr.map((v, i) => {
+      const h = maxB ? v / maxB * H : 0;
+      return `<g data-tip="<b>${BULAN[i]} 2026</b><br>${fmt(v)} rekod"><rect x="${i * bw}" y="0" width="${bw}" height="${H}" fill="transparent"/>
+        <rect x="${i * bw + 5}" y="${H - h}" width="${bw - 10}" height="${h}" rx="3" fill="${v === maxB ? '#c9a24a' : '#3987e5'}"/></g>
+        <text x="${i * bw + bw / 2}" y="${H + 16}" text-anchor="middle" font-size="11" fill="#8a877f">${BULAN[i]}</text>`; }).join('')}</svg>`;
+
+  $('sd').innerHTML = `
+    <div class="sd-title"><h3>${s.nama}</h3><span>${s.teras ? 'Subjek teras · ' : ''}${s.guru} guru · ${tahunAda.length} Tahun</span></div>
+    <div class="tiles">
+      <div class="tile"><div class="l">Purata TP</div><div class="v num">${s.purata.toFixed(2)}</div><div class="s">sekolah: ${purataSek.toFixed(2)}</div></div>
+      <div class="tile"><div class="l">Cemerlang</div><div class="v num">${s.cem.toFixed(1)}<small>%</small></div><div class="s">murid TP5–6</div></div>
+      <div class="tile"><div class="l">Murid TP1–2</div><div class="v num" style="color:${s.lemah ? 'var(--crit)' : 'inherit'}">${s.lemah}</div><div class="s">belum menguasai</div></div>
+      <div class="tile"><div class="l">Murid</div><div class="v num">${fmt(s.murid)}</div><div class="s">${s.kelasN} kelas</div></div>
+      <div class="tile"><div class="l">Jantina</div><div class="v num" style="font-size:19px;margin-top:10px">L ${s.kpL?.toFixed(1) ?? '—'} · P ${s.kpP?.toFixed(1) ?? '—'}</div><div class="s">% menguasai</div></div>
+      <div class="tile"><div class="l">Rekod</div><div class="v num">${fmt(s.rekod)}</div><div class="s">~${fmt(Math.round(s.rekod / s.kelasN))} setiap kelas</div></div>
+    </div>
+    <div class="sd-grid">
+      <div>
+        <div class="sd-block"><div class="sub-h">Taburan TP mengikut Tahun (semua penilaian) · purata</div>
+          ${tahunAda.map(t => `<div class="yr-row" data-tip="<b>Tahun ${TN[t]}</b><br>${s.tahun[t].map((c, i) => `TP${i + 1}: ${fmt(c)}`).join(' · ')}"><span>Tahun ${TN[t]}</span>${stack(s.tahun[t])}<span class="v num">${avgH(s.tahun[t]).toFixed(2)}</span></div>`).join('')}
+        </div>
+        <div class="sd-block"><div class="sub-h">Topik / unit paling mencabar</div>
+          <ul class="unit">${s.unit.length ? s.unit.map(u => `<li><div class="u">${u.u}<small>Tahun ${TN[u.t] || u.t} · ${fmt(u.n)} penilaian</small></div>
+            <div class="p num">${u.p.toFixed(2)}${u.low >= .05 ? `<small>${(u.low * 100).toFixed(0)}% TP1–2</small>` : ''}</div></li>`).join('') : '<li>Data unit tidak mencukupi</li>'}</ul>
+        </div>
+      </div>
+      <div>
+        <div class="sd-block"><div class="sub-h">Kedudukan kelas · purata TP</div>
+          <div class="kls">${kls.map(k => `<div class="kls-row ${tanda.has(k.k) ? 'lo' : ''}" data-tip="<b>${k.k}</b><br>Purata TP ${k.p.toFixed(2)}<br>${fmt(k.r)} rekod${k.l != null ? ' · liputan ~' + Math.round(k.l * 100) + '%' : ''}">
+            <span class="n">${k.k}</span><div class="tr"><i style="width:${(k.p - 1) / 5 * 100}%;background:${tanda.has(k.k) ? 'var(--tp2)' : 'var(--tp4)'}"></i></div><span class="v">${k.p.toFixed(2)}</span></div>`).join('')}</div>
+        </div>
+        <div class="sd-block internal"><div class="sub-h">Aktiviti pentaksiran bulanan (rekod)</div><div class="svg-wrap">${bulanSvg}</div></div>
+      </div>
+    </div>
+    <div class="so-what"><b>Maksudnya:</b> ${tahunRank.length > 1 ? `Tahun ${TN[tahunRank[0].t]} paling rendah (${tahunRank[0].v.toFixed(2)}), Tahun ${TN[tahunRank.at(-1).t]} paling tinggi (${tahunRank.at(-1).v.toFixed(2)}). ` : ''}
+      Jurang antara kelas ${(kls[0].p - kls.at(-1).p).toFixed(1)} TP — ${kls.at(-1).k} (${kls.at(-1).p.toFixed(2)}) memerlukan sokongan.
+      ${unitTop ? `Unit paling mencabar: <b>${unitTop.u.slice(0, 70)}</b> (Tahun ${TN[unitTop.t] || unitTop.t}, purata ${unitTop.p.toFixed(2)}).` : ''}
+      <span class="internal">${bulanArr.indexOf(maxB) === 5 ? 'Kemasukan rekod memuncak pada Jun — pentaksiran tertumpu menjelang tarikh akhir, bukan berterusan.' : ''}</span></div>`;
+}
+pilihSubjek(terasRendah.kod);
+
+// ════════════ 04 Keseragaman penarafan ════════════
+(function(){
+  const rows = tp6s, med = median(rows.map(s => s.tp6)), max = Math.ceil(rows[0].tp6 / 10) * 10;
+  $('rate').innerHTML = rows.map(s => `<div class="rate-row" data-tip="<b>${s.nama}</b><br>${s.tp6.toFixed(1)}% penilaian TP6<br>${fmt(s.hist[5])} daripada ${fmt(sum(s.hist))}">
+    <span><b>${s.kod}</b> <span style="color:var(--muted);font-size:12px">${s.nama.length > 18 ? '' : s.nama}</span></span>
+    <div class="tr"><i style="width:${s.tp6 / max * 100}%;opacity:${s.tp6 > med * 1.5 || s.tp6 < med / 2 ? 1 : .5}"></i><span class="med" style="left:${med / max * 100}%"></span></div>
+    <span class="v">${s.tp6.toFixed(0)}%</span><span class="p">${s.purata.toFixed(2)}</span></div>`).join('');
+  const tinggi = rows.filter(s => s.tp6 > med * 1.5).map(s => s.kod), rendah = rows.filter(s => s.tp6 < med / 2).map(s => s.kod);
+  $('sw04').innerHTML = `<b>Maksudnya:</b> Median sekolah ${med.toFixed(0)}% TP6. ${tinggi.join(', ')} jauh di atas; ${rendah.join(', ')} jauh di bawah. Jika satu panitia memberi TP6 kepada separuh penilaian, sama ada murid luar biasa atau deskriptor ditafsir berbeza. Cadangan: sesi <b>moderasi</b> antara panitia.`;
+})();
+
+// ════════════ 05 Murid berisiko ════════════
+(function(){
+  const r = DATA.risk;
+  $('riskN').textContent = r.jum;
+  $('riskTxt').innerHTML = `murid (${(r.jum / NM * 100).toFixed(1)}%) — <b>${r.L} lelaki, ${r.P} perempuan</b>.<br>Lagi <b>${r.satu - r.jum}</b> murid TP1–2 dalam satu subjek teras (pantau).`;
+  const perT = T.map(t => r.tahun[t] || 0), maxT = Math.max(...perT, 1);
+  $('riskTahun').innerHTML = perT.map((n, i) => `<div class="hbar" data-tip="<b>Tahun ${i + 1}</b><br>${n} murid berisiko"><span>Tahun ${i + 1}</span>
+    <div class="tr"><i style="width:${n / maxT * 100}%;background:var(--tp1)"></i></div><span class="v">${n}</span></div>`).join('');
+  $('riskSubj').innerHTML = Object.entries(r.subj).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<div class="hbar" data-tip="<b>${k}</b><br>${n} daripada ${r.jum} murid berisiko lemah dalam subjek ini">
+    <span>${k}</span><div class="tr"><i style="width:${n / r.jum * 100}%;background:var(--tp2)"></i></div><span class="v">${n}</span></div>`).join('');
+})();
+
+// ════════════ Cadangan ════════════
+(function(){
+  const r = DATA.risk, med = median(tp6s.map(s => s.tp6));
+  const t1bm = byKod.BM.unit.filter(u => u.t === 'SATU')[0];
+  $('actList').innerHTML = [
+    {h:`Intervensi literasi Tahun 1 — ${r.tahun.SATU || 0} murid`, who:'Panitia BM & BI · Guru Kelas Tahun 1',
+     p:`${r.tahun.SATU || 0} daripada ${r.jum} murid berisiko di Tahun 1, lemah dalam BM (${r.subj.BM}) dan BI (${r.subj.BI}).${t1bm ? ` Unit BM Tahun 1 seperti "${t1bm.u.slice(0, 45)}…" mencatat ${(t1bm.low * 100).toFixed(0)}% TP1–2.` : ''} Kumpulan kecil + saringan semula selepas 6 minggu.`},
+    {h:`Pelan pemulihan ${terasRendah.nama}`, who:'Ketua Panitia ' + terasRendah.kod + ' · PK Kurikulum',
+     p:`Purata ${terasRendah.purata.toFixed(2)} — terendah antara subjek teras, dan rendah merentasi Tahun. Fokus pada unit paling mencabar (lihat Analisis Subjek) dan perkongsian amalan dari kelas terbaik.`},
+    {h:'Moderasi penarafan antara panitia', who:'JK Kurikulum · Semua Ketua Panitia',
+     p:`TP6 berjulat dari ${tp6s.at(-1).tp6.toFixed(0)}% (${tp6s.at(-1).kod}) ke ${tp6s[0].tp6.toFixed(0)}% (${tp6s[0].kod}); median ${med.toFixed(0)}%. Selaraskan tafsiran deskriptor TP5–TP6 supaya angka ke SPPB setara antara subjek.`},
+  ].map((a, i) => `<div class="act"><div class="k">0${i + 1}</div><h3>${a.h}</h3><p>${a.p}</p><span class="who">${a.who}</span></div>`).join('');
+})();
+
+// ════════════ Paparan dalaman/luaran + pembentangan ════════════
+$('vDalam').onclick = () => { document.body.classList.remove('luaran'); $('vDalam').classList.add('on'); $('vLuar').classList.remove('on'); };
+$('vLuar').onclick = () => { document.body.classList.add('luaran'); $('vLuar').classList.add('on'); $('vDalam').classList.remove('on'); };
+const slides = () => [...document.querySelectorAll('[data-slide]')].filter(e => getComputedStyle(e).display !== 'none');
+let cur = 0;
+const go = d => { const s = slides(); cur = Math.max(0, Math.min(s.length - 1, cur + d));
+  s[cur].scrollIntoView({behavior:'smooth', block: cur === 0 ? 'start' : 'center'}); };
+$('btnPresent').onclick = () => {
+  const on = document.body.classList.toggle('present');
+  $('btnPresent').textContent = on ? '✕ Keluar' : '▶ Mod Pembentangan';
+  if (on) { document.documentElement.requestFullscreen?.().catch(() => {}); cur = 0; go(0); }
+  else if (document.fullscreenElement) document.exitFullscreen();
+};
+$('pgUp').onclick = () => go(-1);
+$('pgDn').onclick = () => go(1);
+document.addEventListener('keydown', e => {
+  if (!document.body.classList.contains('present')) return;
+  if (['ArrowDown','PageDown',' '].includes(e.key)) { e.preventDefault(); go(1); }
+  if (['ArrowUp','PageUp'].includes(e.key)) { e.preventDefault(); go(-1); }
+});
+</script>
+</body>
+</html>
